@@ -17,7 +17,9 @@ return new class extends Migration
             $table->string('reason'); // reward_approved | order_payment | order_refund | admin_credit:* | admin_debit:*
             $table->string('reference_type')->nullable();
             $table->unsignedBigInteger('reference_id')->nullable();
-            $table->timestamp('created_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamp('expired_at')->nullable();
+            $table->timestamps();
 
             $table->index('user_id');
             $table->index(['reference_type', 'reference_id']);
