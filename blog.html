@@ -487,54 +487,17 @@
   </div>
 </footer>
 
-<!-- ============================ SUPPORT CHAT ========================== -->
-<div class="fixed bottom-[74px] right-3 z-[120] flex items-center justify-end gap-2 md:bottom-[18px] md:right-[18px]" data-chat>
-
-  <span class="relative hidden items-center gap-2.5 whitespace-nowrap rounded-[22px] bg-[#1f1f1f] px-4 py-2.5 text-[13px] text-white shadow-lg md:inline-flex" data-chat-tip>
-    Need help?
-    <button class="text-[16px] leading-none opacity-70 transition-opacity hover:opacity-100" type="button" data-chat-tip-close aria-label="Dismiss">&times;</button>
-  </span>
-
-  <button class="relative order-2 h-[50px] w-[50px] shrink-0 rounded-full bg-white shadow-lg md:h-[58px] md:w-[58px]"
-          type="button" data-chat-open aria-label="Open support chat" aria-expanded="false">
-    <img class="h-full w-full rounded-full object-cover p-1.5" src="assets/images/chat-avatar.svg" alt="" width="56" height="56">
-    <span class="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#eb001b] text-[11px] font-medium text-white" data-chat-badge>1</span>
-    <span class="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white bg-[#22c55e]"></span>
-  </button>
-
-  <div class="absolute bottom-[72px] right-0 flex w-[min(340px,calc(100vw-36px))] flex-col overflow-hidden rounded-[14px] bg-white shadow-2xl"
-       data-chat-panel hidden>
-    <div class="flex items-center justify-between gap-2.5 bg-accent px-4 py-3.5 text-white">
-      <div class="flex items-center gap-2.5">
-        <img class="rounded-full bg-white p-[3px]" src="assets/images/chat-avatar.svg" alt="" width="34" height="34">
-        <div>
-          <strong class="block text-[13.5px] font-medium">Estele Support</strong>
-          <span class="text-[11.5px] opacity-85">Typically replies in a few minutes</span>
-        </div>
-      </div>
-      <button class="text-2xl leading-none text-white" type="button" data-chat-close aria-label="Close chat">&times;</button>
-    </div>
-
-    <div class="flex max-h-[260px] flex-col gap-2.5 overflow-y-auto bg-[#faf7f8] p-4" data-chat-log>
-      <p class="max-w-[85%] self-start rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13px] leading-relaxed">Hi! Welcome to Estele. How can we help you today?</p>
-    </div>
-
-    <div class="flex flex-wrap gap-1.5 px-4 pt-3">
-      <button class="rounded-full border border-accent px-3 py-1.5 text-[12px] text-accent transition-colors hover:bg-accent hover:text-white" type="button" data-chat-quick>Track my order</button>
-      <button class="rounded-full border border-accent px-3 py-1.5 text-[12px] text-accent transition-colors hover:bg-accent hover:text-white" type="button" data-chat-quick>Return &amp; exchange</button>
-      <button class="rounded-full border border-accent px-3 py-1.5 text-[12px] text-accent transition-colors hover:bg-accent hover:text-white" type="button" data-chat-quick>Size guide</button>
-    </div>
-
-    <form class="flex items-center gap-2 px-4 pb-4 pt-3" data-chat-form>
-      <label class="sr-only-custom" for="chat-input">Message</label>
-      <input class="w-full rounded-full border border-line-strong px-3.5 py-2.5 text-[13px] outline-none focus:border-accent"
-             id="chat-input" type="text" placeholder="Type your message..." autocomplete="off">
-      <button class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent text-white transition-colors hover:bg-accent-dark" type="submit" aria-label="Send">
-        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
-      </button>
-    </form>
-  </div>
-</div>
+<!-- ============================ FLOATING ACTIONS (CART ONLY) ========================== -->
+<a href="cart.html" class="fixed right-3 z-[120] md:right-[18px] flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-accent shadow-lg transition-all hover:bg-accent-dark md:h-[58px] md:w-[58px]"
+   data-floating-cart aria-label="View cart" style="bottom: calc(90px + env(safe-area-inset-bottom)); right: 12px;">
+  <svg class="h-[24px] w-[24px] text-white md:h-[28px] md:w-[28px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+    <path d="M3 6h18"/>
+    <path d="M16 10a4 4 0 0 1-8 0"/>
+  </svg>
+  <!-- Item Count Badge -->
+  <span class="absolute -right-2 -top-2 grid h-[22px] min-w-[22px] place-ite  <span class="absolute -right-2 -top-2 grid ht-  <span class="absolute -right-2 -top-2 grite md  <span class="absolute -right-2 -top-2 grid h-[rt-count>0</span>
+</a>
 <!-- ====================== MOBILE BOTTOM TAB BAR ====================== -->
 <nav class="fixed inset-x-0 bottom-0 z-[110] flex border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Quick navigation">
   <a class="flex flex-1 flex-col items-center gap-0.5 px-0.5 py-2 text-[10px] uppercase tracking-[0.3px] text-heading transition-colors hover:text-accent" href="index.html">
