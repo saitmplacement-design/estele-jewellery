@@ -1709,27 +1709,10 @@
 </nav>
 
 <button class="fixed bottom-[86px] right-3 z-[90] grid h-[42px] w-[42px] translate-y-2.5 place-items-center rounded-full bg-heading text-white opacity-0 transition-all hover:bg-accent md:bottom-[18px] md:right-[18px]"
-<!-- ============================ FLOATING ACTIONS (CART ONLY) ========================== -->
-<a href="cart.html" class="fixed right-3 z-[120] md:right-[18px] flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-accent shadow-lg transition-all hover:bg-accent-dark md:h-[58px] md:w-[58px]"
-   data-floating-cart aria-label="View cart" style="bottom: calc(90px + env(safe-area-inset-bottom)); right: 12px;">
-  <svg class="h-[24px] w-[24px] text-white md:h-[28px] md:w-[28px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-    <path d="M3 6h18"/>
-    <path d="M16 10a4 4 0 0 1-8 0"/>
-  </svg>
-  <span class="abso  <span class="abso  <span class="abso-w-[22px]   <span class="abso  <span class="abso  <spanpx-1.5   <span class="abso  <span class="abso  <span cit  <span class="abso  <span class="abso a-floating-cart-count>0</span>
-</a>
-<!-- ======================<!-- ======================<!-- ======================<!-- ======================<!-- =====10]<!-- ======================<!-- ======================<!-- ======================<!-- ======================<!-- =====10]<!-- ======================<!-- ======================<!-- ======================<!-- ==========ex<!-- ======================<!-- ======================<!-- ======================<!-- ======================<!-- =l="<!-- ======================<!-- ======================<!-- ======================<!-- ======================<!-- =====10]<!-- ======================<!-- ======================<!-- =====it<!-- ======================<!-- ======================<!-- ===[0.3p<!-- ========== transiti<!-- ======================<!-- =="collection.html">
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-    <span>Categories</span>
-  </a>
-  <a class="flex flex-1 flex-col items-center gap-0.5 px-0.5 py-2 text-[10px] uppercase tracking-[0.3px] text-heading transition-colors hover:text-accent" href="collection.html">
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12z"/></svg>
-    <span>Trending</span>
-  </a>
-  <a class="flex flex-1 flex-col items-center gap-0.5 px-0.5 py-2 text-[10px] uppercase tracking-[0.3px] text-heading transition-colors hover:text-accent"
-   href="pages/cart.html">
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke        <path stroke-linecap="round" stroke        <path stroke-linecap="round" stroke        <path stroke-linecap="round" stroke        <path stroke-linecap="round" stroke        <path stroke-linecap="round" stroke        <path stroke-linecap="round" stroke        <path stroke-linecap="round" sion-color        <path stroke-line="a    nt.html">
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0r0 1 7-7h2a7 7 0 0 1     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx=y>
+        type="button" data-to-top aria-label="Back to top">
+  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script type="module" src="dist/app.js"></script>
+</body>
 </html>
