@@ -32,9 +32,11 @@
       </div>
 
       <x-pagination-links :paginator="$posts" />
-      <div class="mt-8">
-        {{ $posts->links() }}
-      </div>
+      @if($posts->hasPages())
+        <div class="mt-8">
+          {{ $posts->links() }}
+        </div>
+      @endif
     @endif
   </div>
 

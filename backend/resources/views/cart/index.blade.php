@@ -150,7 +150,7 @@
               @endif
               <p class="mt-3 text-center text-[13px] text-[#454545]">UPI, Cards | Secure Checkout</p>
               <a class="btn-cta mt-4 hidden md:inline-flex" href="{{ route('checkout.index') }}">Go To Checkout</a>
-              <a class="mx-auto mt-3.5 hidden w-fit border-b border-current text-[13px] text-muted md:block" href="{{ route('home') }}">Continue Shopping</a>
+              <a class="mx-auto mt-3.5 block w-fit border-b border-current text-[13px] text-muted" href="{{ route('home') }}">Continue Shopping</a>
             </div>
 
             @include('partials.trust-badges')

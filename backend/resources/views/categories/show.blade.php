@@ -32,7 +32,7 @@
     <x-breadcrumb :items="[['label' => $category->name]]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-2.5 pb-10 pt-3 md:px-4 md:pb-[60px] md:pt-0">
+  <div class="mx-auto w-full max-w-wrapper px-2.5 pb-6 pt-3 md:px-4 md:pb-10 md:pt-0">
 
     <x-filter-panel
       :action="route('categories.show', $category)"
@@ -73,9 +73,11 @@
       </div>
 
       <x-pagination-links :paginator="$products" />
-      <div class="mt-8">
-        {{ $products->links() }}
-      </div>
+      @if($products->hasPages())
+        <div class="mt-8">
+          {{ $products->links() }}
+        </div>
+      @endif
     @endif
   </div>
 

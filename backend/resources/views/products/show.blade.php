@@ -325,22 +325,6 @@
         border-radius: 0;
       }
 
-      [data-chat] {
-        bottom: 84px !important;
-      }
-
-      /* The page ends at the content on mobile — the full footer is hidden
-           so the product page doesn't scroll on past the purchase actions
-           into site-wide links, and the gap the sticky bar used to leave
-           above itself goes with it. */
-      .footer-mobile,
-      footer {
-        display: none;
-      }
-
-      body:has(.buybar) {
-        padding-bottom: 0;
-      }
     }
   </style>
 
@@ -528,7 +512,7 @@
                 formaction="{{ route('checkout.express.start', $product) }}" data-express-submit {{ $product->stock_quantity <= 0 ? 'disabled' : '' }}>Buy Now</button>
               <button class="btn-cta flex-1" type="submit" {{ $product->stock_quantity <= 0 ? 'disabled' : '' }}>{{ $product->stock_quantity > 0 ? 'Add to Bag' : 'Out of Stock' }}</button>
             </div>
-            <p class="hidden text-center text-[11px] text-muted md:block">Fast &amp; secure · UPI, cards, net banking, COD
+            <p class="text-center text-[11px] text-muted">Fast &amp; secure · UPI, cards, net banking, COD
             </p>
           </form>
 

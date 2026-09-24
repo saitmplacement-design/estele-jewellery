@@ -14,7 +14,7 @@
 <section class="bg-white py-6 md:border-y md:border-line md:py-9">
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
     @if($block->title || $block->subtitle)
-      <div class="hidden md:block">
+      <div>
         <x-section-header :eyebrow="$block->cta_label ?: 'Since 1989'" :title="$block->title ?: 'Why Indian Women Choose Estele'" :subtitle="$block->subtitle" />
       </div>
     @endif
@@ -32,7 +32,7 @@
           <div>
             <h3 class="text-[12.5px] font-normal leading-[1.3] tracking-[0.02em] text-heading md:text-[15px] md:font-bold">{{ $item->title }}</h3>
             @if($item->body)
-              <p class="mt-1.5 hidden text-[12.5px] leading-relaxed text-muted md:block">{{ $item->body }}</p>
+              <p class="mt-1 text-[11.5px] leading-snug text-muted md:mt-1.5 md:text-[12.5px] md:leading-relaxed">{{ $item->body }}</p>
             @endif
           </div>
         </div>

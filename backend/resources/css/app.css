@@ -294,7 +294,8 @@
      of product tiles, so top up the shortfall here instead of hardcoding the
      bar's height into each page's padding. */
   @media (max-width: 767px) {
-    body:has(.listing-bar) main { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
+    body:has(.listing-bar) { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
+    body:has(.buybar) { padding-bottom: calc(67px + env(safe-area-inset-bottom)); }
   }
 
   .bag-card { @apply rounded-xl bg-white p-4; }
@@ -484,12 +485,15 @@
   .explore-grid-4row.is-expanded > * { display: revert !important; }
 
   /* ---- Section heading: serif title with a short gold rule under it ---- */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
   .section-head { @apply text-center; }
   .section-head__title {
     @apply font-sans text-[18px] font-normal uppercase leading-tight tracking-[0.02em] text-accent-dark md:text-[26px] lg:text-[30px] xl:text-[34px];
   }
   .section-head--strip {
-    @apply -mx-3 mb-4 flex h-[53px] items-center justify-center md:mx-0 md:mb-9 md:h-auto md:bg-none;
+    @apply -mx-3 mb-4 flex min-h-[53px] flex-col items-center justify-center px-3 py-3 md:mx-0 md:mb-9 md:bg-none md:px-0 md:py-0;
     background-image: linear-gradient(100deg, #EDEDED 0%, #FFFFFF 22%, #FFFFFF 78%, #EDEDED 100%);
   }
   .section-head__title--plain {

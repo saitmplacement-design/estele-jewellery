@@ -26,15 +26,15 @@
   </nav>
 
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
-    <header class="hidden pb-6 pt-2 text-center md:block md:pb-[30px]">
-      <h1 class="text-[20px] uppercase tracking-[0.5px] md:text-[26px] mb-2.5">{{ $collection->name }}</h1>
+    <header class="pb-4 pt-3 text-center md:pb-[30px] md:pt-2 {{ $collection->description ? '' : 'hidden md:block' }}">
+      <h1 class="mb-2.5 hidden text-[20px] uppercase tracking-[0.5px] md:block md:text-[26px]">{{ $collection->name }}</h1>
       @if($collection->description)
         <p class="mx-auto max-w-[70ch] text-[13.5px] text-muted">{{ $collection->description }}</p>
       @endif
     </header>
   </div>
 
-  <div class="mx-auto w-full max-w-wrapper px-2.5 pb-10 pt-3 md:px-4 md:pb-[60px] md:pt-0">
+  <div class="mx-auto w-full max-w-wrapper px-2.5 pb-6 pt-3 md:px-4 md:pb-10 md:pt-0">
 
     <x-filter-panel
       :action="route('collections.show', $collection)"
@@ -73,9 +73,11 @@
       </div>
 
       <x-pagination-links :paginator="$products" />
-      <div class="mt-8">
-        {{ $products->links() }}
-      </div>
+      @if($products->hasPages())
+        <div class="mt-8">
+          {{ $products->links() }}
+        </div>
+      @endif
     @endif
   </div>
 

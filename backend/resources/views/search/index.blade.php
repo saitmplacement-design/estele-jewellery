@@ -21,7 +21,7 @@
     <x-breadcrumb :items="[['label' => 'Search']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-2.5 pb-10 pt-3 md:px-4 md:pb-[60px] md:pt-0">
+  <div class="mx-auto w-full max-w-wrapper px-2.5 pb-6 pt-3 md:px-4 md:pb-10 md:pt-0">
     <h1 class="mb-5 hidden text-[26px] md:block">Search</h1>
 
     @if($query !== '')
@@ -65,9 +65,11 @@
         @endforeach
       </div>
 
-      <div class="mt-8">
-        {{ $products->links() }}
-      </div>
+      @if($products->hasPages())
+        <div class="mt-8">
+          {{ $products->links() }}
+        </div>
+      @endif
     @endif
   </div>
 

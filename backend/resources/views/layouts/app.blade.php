@@ -69,8 +69,8 @@
   @endif
 </div>
 @if(count($activeOffers))
-  <div class="hidden w-full border-b border-line bg-pinksoft py-1.5 text-[11px] text-heading md:block">
-    <div class="mx-auto flex w-full max-w-wrapper items-center justify-center gap-6 px-4">
+  <div class="w-full border-b border-line bg-pinksoft py-1.5 text-[11px] text-heading">
+    <div class="no-scrollbar mx-auto flex w-full max-w-wrapper items-center gap-6 overflow-x-auto whitespace-nowrap px-4 md:justify-center">
       @foreach($activeOffers as $offer)
         <span class="inline-flex items-center gap-1.5"><span class="text-gold">&#10022;</span>{{ $offer }}</span>
       @endforeach
@@ -339,17 +339,19 @@
 @include('partials.bottom-nav')
 
 {{-- ============================================================
-     FLOATING CART BUBBLE — bottom-right, visible only when cart
-     has items. Tapping opens the cart drawer. Desktop only: on a phone
-     the header bag icon already shows the live count, and the bottom
-     edge belongs to the tab bar and the pages' sticky action bars.
+     FLOATING BUTTONS — the same two on every device, stacked in the
+     bottom-right corner so they never overlap: the chat bubble at the
+     bottom and, while the bag has items, the bag bubble above it. They
+     sit above the phone tab bar / sticky action bars, and stand down on
+     bag, checkout and payment where the page's own CTA is what matters.
      ============================================================ --}}
-<a href="/cart"
+@php($focusedPage = request()->routeIs('cart.*', 'checkout.*', 'payment.*'))
+<a href="{{ route('cart.index') }}"
    id="floating-cart-btn"
    data-cart-open
    aria-label="View cart"
    hidden
-   class="fixed bottom-[22px] right-[22px] z-[120] hidden h-[58px] w-[58px] items-center justify-center rounded-full bg-heading text-white shadow-xl transition-all duration-300 hover:bg-accent md:flex"
+   class="floating-cart-btn fixed z-[120] {{ $focusedPage ? 'floating-hidden' : 'flex' }} items-center justify-center rounded-full bg-heading text-white shadow-xl transition-all duration-300 hover:bg-accent"
    style="transform:scale(0);opacity:0;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s,background .2s;">
   <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
     <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
@@ -360,40 +362,47 @@
         data-floating-cart-count aria-live="polite">0</span>
 </a>
 
-{{-- ============================================================
-     CHATBOT — collapsed as a vertical tab on the right edge.
-     Click to expand full chat panel.
-     ============================================================ --}}
 <style>
-  /* Vertical chat tab pill on the right edge */
+  /* Round chat bubble (same on every device). */
   .chat-tab-pill {
     position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
     z-index: 119;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
     background: #1f1f1f;
     color: #fff;
-    padding: 14px 9px;
-    border-radius: 12px 0 0 12px;
     cursor: pointer;
-    box-shadow: -2px 0 18px rgba(0,0,0,.2);
-    border: none;
-    transition: background .2s, right .3s;
+    box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    transition: background .2s;
   }
   .chat-tab-pill:hover { background: #2d2d2d; }
-  .chat-tab-pill img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
-  .chat-tab-pill .tab-label {
-    font-size: 10.5px; letter-spacing: .05em; opacity: .8;
-    writing-mode: vertical-rl; text-orientation: mixed;
-  }
-  .chat-tab-pill .online-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+  .chat-tab-pill img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+  .chat-tab-pill .tab-label { display: none; }
+  .chat-tab-pill .online-dot { position: absolute; right: 3px; bottom: 3px; width: 11px; height: 11px; border-radius: 50%; background: #22c55e; border: 2px solid #1f1f1f; }
 
-  /* Full chat panel — slides from right */
+  /* Stack: chat bubble at the bottom, bag bubble 10px above it. */
+  .floating-cart-btn, .chat-tab-pill { right: 12px; }
+  .chat-tab-pill { bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .floating-cart-btn { width: 48px; height: 48px; bottom: calc(126px + env(safe-area-inset-bottom)); }
+  body:has(.buybar) .chat-tab-pill { bottom: calc(79px + env(safe-area-inset-bottom)); }
+  body:has(.buybar) .floating-cart-btn { bottom: calc(137px + env(safe-area-inset-bottom)); }
+  body:has(.listing-bar) .chat-tab-pill { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body:has(.listing-bar) .floating-cart-btn { bottom: calc(122px + env(safe-area-inset-bottom)); }
+  @media (min-width: 768px) {
+    .floating-cart-btn, .chat-tab-pill { right: 22px; }
+    .chat-tab-pill, body:has(.buybar) .chat-tab-pill, body:has(.listing-bar) .chat-tab-pill { bottom: 22px; }
+    .floating-cart-btn, body:has(.buybar) .floating-cart-btn, body:has(.listing-bar) .floating-cart-btn { width: 54px; height: 54px; bottom: 88px; }
+    .chat-tab-pill { width: 54px; height: 54px; }
+  }
+  .floating-hidden { display: none !important; }
+
+
   .chat-full-panel {
     position: fixed;
     right: 0;
@@ -413,25 +422,8 @@
   .chat-full-panel.is-open {
     transform: translateY(-50%) translateX(0);
   }
-  /* Mobile: a compact round bubble just above the tab bar (a vertical tab
-     on the right edge covered product tiles and carousel arrows), and the
-     panel slides up from the bottom. */
+  /* Phones: the panel slides up from the bottom. */
   @media (max-width: 767px) {
-    .chat-tab-pill {
-      top: auto; right: 12px; bottom: calc(68px + env(safe-area-inset-bottom)); transform: none;
-      width: 48px; height: 48px; padding: 0; justify-content: center; border-radius: 9999px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.22);
-    }
-    .chat-tab-pill img { width: 30px; height: 30px; }
-    .chat-tab-pill .tab-label { display: none; }
-    .chat-tab-pill .online-dot { position: absolute; right: 3px; bottom: 3px; width: 11px; height: 11px; border: 2px solid #1f1f1f; }
-    /* Pages that pin their own action bar (product, cart, listings) hide the
-       tab bar; lift the bubble clear of the taller product/cart bar. */
-    body:has(.buybar) .chat-tab-pill { bottom: calc(79px + env(safe-area-inset-bottom)); }
-    body:has(.listing-bar) .chat-tab-pill { bottom: calc(64px + env(safe-area-inset-bottom)); }
-    /* Bag, checkout and payment: the bubble floated over order totals and
-       the confirmation buttons, and the page's own CTA is what matters. */
-    .chat-tab-pill--checkout { display: none; }
     .chat-full-panel {
       top: auto; bottom: 0;
       transform: translateX(0) translateY(110%);
@@ -443,8 +435,8 @@
   }
 </style>
 
-{{-- Vertical tab trigger --}}
-<button class="chat-tab-pill {{ request()->routeIs('cart.*', 'checkout.*', 'payment.*') ? 'chat-tab-pill--checkout' : '' }}" type="button" id="chat-tab-btn"
+{{-- Chat bubble --}}
+<button class="chat-tab-pill {{ $focusedPage ? 'floating-hidden' : '' }}" type="button" id="chat-tab-btn"
         aria-label="Open support chat" aria-expanded="false" aria-controls="chat-full-panel">
   <img src="{{ asset('assets/images/chat-avatar.svg') }}" alt="" width="26" height="26">
   <span class="online-dot"></span>
