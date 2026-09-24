@@ -17,7 +17,8 @@ use Illuminate\Support\Str;
 class PersonalAccessToken extends Model
 {
     protected $fillable = [
-        'user_id',
+        'tokenable_type',
+        'tokenable_id',
         'name',
         'token',
         'abilities',
@@ -34,9 +35,13 @@ class PersonalAccessToken extends Model
         ];
     }
 
+    /**
+     * Shares Sanctum's personal_access_tokens table, so the owner lives in
+     * the tokenable morph columns rather than a user_id column.
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'tokenable_id');
     }
 
     public static function hash(string $plaintext): string
@@ -57,7 +62,8 @@ class PersonalAccessToken extends Model
         $plaintext = Str::random(64);
 
         $token = static::create([
-            'user_id' => $user->id,
+            'tokenable_type' => $user->getMorphClass(),
+            'tokenable_id' => $user->id,
             'name' => $name,
             'token' => static::hash($plaintext),
             'abilities' => $abilities,

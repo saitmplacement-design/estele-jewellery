@@ -41,7 +41,7 @@ class TokenGuard implements Guard
 
         $model->touchLastUsed();
 
-        return $this->user = $this->provider->retrieveById($model->user_id);
+        return $this->user = $this->provider->retrieveById($model->tokenable_id);
     }
 
     public function validate(array $credentials = []): bool
