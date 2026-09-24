@@ -333,68 +333,150 @@
 <div class="bottom-nav-spacer h-[calc(56px+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true"></div>
 @include('partials.bottom-nav')
 
-<div class="fixed bottom-[74px] right-3 z-[120] flex items-center justify-end gap-2 md:bottom-[18px] md:right-[18px]" data-chat>
-  <span class="relative hidden items-center gap-2.5 whitespace-nowrap rounded-[22px] bg-[#1f1f1f] px-4 py-2.5 text-[13px] text-white shadow-lg md:inline-flex" data-chat-tip>
-    Need help?
-    <button class="text-[16px] leading-none opacity-70 transition-opacity hover:opacity-100" type="button" data-chat-tip-close aria-label="Dismiss">&times;</button>
-  </span>
-  <button class="relative order-2 h-[50px] w-[50px] shrink-0 rounded-full bg-white shadow-lg md:h-[58px] md:w-[58px]"
-          type="button" data-chat-open aria-label="Open support chat" aria-expanded="false">
-    <img class="h-full w-full rounded-full object-cover p-1.5" src="{{ asset('assets/images/chat-avatar.svg') }}" alt="" width="56" height="56">
-    <span class="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#eb001b] text-[11px] font-medium text-white" data-chat-badge>1</span>
-    <span class="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-white bg-[#22c55e]"></span>
-  </button>
-  <div class="absolute bottom-[72px] right-0 flex w-[min(340px,calc(100vw-36px))] flex-col overflow-hidden rounded-[18px] bg-white shadow-2xl"
-       data-chat-panel hidden>
-    <div class="flex items-center justify-between gap-3 bg-[#232323] px-4 py-3.5 text-white">
-      <div class="flex items-center gap-3">
-        <div>
-          <strong class="block text-sm font-semibold">{{ $siteSettings['site_name'] ?? 'Estele' }} Style Expert</strong>
-          <div class="mt-1 flex items-center gap-2 text-[12px] text-[#cbd5e1]">
-            <span class="h-2.5 w-2.5 rounded-full bg-[#22c55e]"></span>
-            <span>Online</span>
-          </div>
+{{-- ============================================================
+     FLOATING CART BUBBLE — bottom-right, visible only when cart
+     has items. Tapping opens the cart drawer.
+     ============================================================ --}}
+<a href="/cart"
+   id="floating-cart-btn"
+   data-cart-open
+   aria-label="View cart"
+   hidden
+   class="fixed bottom-[80px] right-3 z-[120] flex h-[54px] w-[54px] items-center justify-center rounded-full bg-heading text-white shadow-xl transition-all duration-300 hover:bg-accent md:bottom-[22px] md:right-[22px] md:h-[58px] md:w-[58px]"
+   style="transform:scale(0);opacity:0;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s,background .2s;">
+  <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <path d="M16 10a4 4 0 0 1-8 0"/>
+  </svg>
+  <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[11px] font-semibold leading-none text-white"
+        data-floating-cart-count aria-live="polite">0</span>
+</a>
+
+{{-- ============================================================
+     CHATBOT — collapsed as a vertical tab on the right edge.
+     Click to expand full chat panel.
+     ============================================================ --}}
+<style>
+  /* Vertical chat tab pill on the right edge */
+  .chat-tab-pill {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 119;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: #1f1f1f;
+    color: #fff;
+    padding: 14px 9px;
+    border-radius: 12px 0 0 12px;
+    cursor: pointer;
+    box-shadow: -2px 0 18px rgba(0,0,0,.2);
+    border: none;
+    transition: background .2s, right .3s;
+  }
+  .chat-tab-pill:hover { background: #2d2d2d; }
+  .chat-tab-pill img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+  .chat-tab-pill .tab-label {
+    font-size: 10.5px; letter-spacing: .05em; opacity: .8;
+    writing-mode: vertical-rl; text-orientation: mixed;
+  }
+  .chat-tab-pill .online-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+
+  /* Full chat panel — slides from right */
+  .chat-full-panel {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) translateX(110%);
+    z-index: 125;
+    width: min(340px, calc(100vw - 16px));
+    max-height: min(520px, calc(100vh - 100px));
+    border-radius: 18px 0 0 18px;
+    background: #fff;
+    box-shadow: -6px 0 40px rgba(0,0,0,.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .chat-full-panel.is-open {
+    transform: translateY(-50%) translateX(0);
+  }
+  /* Mobile: slide up from bottom */
+  @media (max-width: 767px) {
+    .chat-tab-pill { top: auto; bottom: 148px; transform: none; }
+    .chat-full-panel {
+      top: auto; bottom: 0;
+      transform: translateX(0) translateY(110%);
+      border-radius: 18px 18px 0 0;
+      width: 100%; max-height: 70vh;
+      right: 0;
+    }
+    .chat-full-panel.is-open { transform: translateX(0) translateY(0); }
+  }
+</style>
+
+{{-- Vertical tab trigger --}}
+<button class="chat-tab-pill" type="button" id="chat-tab-btn"
+        aria-label="Open support chat" aria-expanded="false" aria-controls="chat-full-panel">
+  <img src="{{ asset('assets/images/chat-avatar.svg') }}" alt="" width="26" height="26">
+  <span class="online-dot"></span>
+  <span class="tab-label">Chat</span>
+</button>
+
+{{-- Expandable chat panel --}}
+<div class="chat-full-panel" id="chat-full-panel" role="dialog" aria-label="Chat with us" aria-modal="true" hidden>
+  <div class="flex items-center justify-between gap-3 bg-[#232323] px-4 py-3.5 text-white">
+    <div class="flex items-center gap-3">
+      <img src="{{ asset('assets/images/chat-avatar.svg') }}" alt="" width="36" height="36" class="rounded-full object-cover shrink-0">
+      <div>
+        <strong class="block text-sm font-semibold">{{ $siteSettings['site_name'] ?? 'Estele' }} Style Expert</strong>
+        <div class="mt-0.5 flex items-center gap-2 text-[12px] text-[#cbd5e1]">
+          <span class="h-2 w-2 rounded-full bg-[#22c55e]"></span>
+          <span>Online</span>
         </div>
       </div>
-      <button class="text-2xl leading-none text-white" type="button" data-chat-close aria-label="Close chat">&times;</button>
     </div>
-    <div class="flex max-h-[280px] flex-col gap-3 overflow-y-auto bg-[#f7f5f6] p-4" data-chat-log>
+    <button class="text-2xl leading-none text-white opacity-70 transition hover:opacity-100" type="button"
+            id="chat-close-btn" aria-label="Close chat">&times;</button>
+  </div>
+  <div class="flex-1 overflow-y-auto">
+    <div class="flex flex-col gap-3 bg-[#f7f5f6] p-4" data-chat-log>
       <p class="max-w-[85%] self-start rounded-[28px] border border-line bg-white px-4 py-3 text-[13px] leading-relaxed shadow-sm">Hey! <strong>How can I help you?</strong></p>
     </div>
-    <div class="flex flex-col gap-2.5 px-4 pt-4">
+    <div class="flex flex-col gap-2.5 bg-[#f7f5f6] px-4 pb-4 pt-2">
       <button class="rounded-full border border-[#dadada] bg-white px-4 py-3 text-[13px] text-heading transition hover:bg-[#fafafa]" type="button" data-chat-quick>Suggest something for me</button>
       <button class="rounded-full border border-[#dadada] bg-white px-4 py-3 text-[13px] text-heading transition hover:bg-[#fafafa]" type="button" data-chat-quick>Tell me about best seller</button>
     </div>
-    <form class="flex items-center gap-2 px-4 pb-4 pt-3" data-chat-form>
-      <label class="sr-only-custom" for="chat-input">Message</label>
-      <input class="w-full rounded-full border border-line-strong bg-[#f4f2f3] px-4 py-3 text-[13px] outline-none focus:border-accent"
-             id="chat-input" type="text" placeholder="You can talk to me in any language" autocomplete="off">
-      <button class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-[#1f1f1f] text-white transition hover:bg-[#111111]" type="submit" aria-label="Send">
-        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
-      </button>
-    </form>
   </div>
+  <form class="flex items-center gap-2 border-t border-line bg-white px-4 py-3" data-chat-form>
+    <label class="sr-only-custom" for="chat-input">Message</label>
+    <input class="w-full rounded-full border border-line-strong bg-[#f4f2f3] px-4 py-2.5 text-[13px] outline-none focus:border-accent"
+           id="chat-input" type="text" placeholder="Talk to me in any language" autocomplete="off">
+    <button class="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full bg-[#1f1f1f] text-white transition hover:bg-[#111111]" type="submit" aria-label="Send">
+      <svg class="h-[16px] w-[16px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+    </button>
+  </form>
 </div>
 
-@yield('sticky_bar')
-
-
 {{--
-  Back-to-top used to sit at the exact same fixed coordinates as the chat
-  bubble below (bottom-[74px]/right-3, md:bottom-[18px]/md:right-[18px]) —
-  the chat bubble's higher z-index meant it silently covered this button
-  whenever both were visible, making "back to top" unreachable near the
-  chat widget. Stacked above the chat bubble instead (bubble height + a
-  small gap): mobile 50px bubble at bottom-74px -> clear at 134px; desktop
-  58px bubble at bottom-18px -> clear at 86px. Inline style + scoped
-  breakpoint override rather than new bottom-[...] utility classes, since
-  this backend has no live Tailwind build of its own (see home/index.blade.php).
+  Back-to-top: above the floating cart bubble.
+  Mobile: cart at bottom-80px → clear at ~148px.
+  Desktop: cart at bottom-22px (58px tall) → clear at ~92px.
 --}}
-<style>@media (min-width: 768px) { .back-to-top-btn { bottom: 86px !important; } }</style>
-<button class="back-to-top-btn fixed right-3 z-[90] grid h-[42px] w-[42px] translate-y-2.5 place-items-center rounded-full bg-heading text-white opacity-0 transition-all hover:bg-accent md:right-[18px]"
-        style="bottom: 134px" type="button" data-to-top aria-label="Back to top">
+<style>
+  .back-to-top-btn { bottom: 148px !important; right: 12px !important; }
+  @media (min-width: 768px) { .back-to-top-btn { bottom: 92px !important; right: 22px !important; } }
+</style>
+<button class="back-to-top-btn fixed z-[90] grid h-[42px] w-[42px] translate-y-2.5 place-items-center rounded-full bg-heading text-white opacity-0 transition-all hover:bg-accent"
+        type="button" data-to-top aria-label="Back to top">
   <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
+
 
 <script src="{{ asset('theme/app.js') }}?v={{ @filemtime(public_path('theme/app.js')) }}"></script>
 @stack('scripts')

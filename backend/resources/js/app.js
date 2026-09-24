@@ -674,6 +674,26 @@ import '../css/app.css';
         badge.textContent = count;
         badge.style.display = count > 0 ? 'grid' : 'none';
       });
+
+      /* --- Floating cart bubble: show when items exist, hide when empty --- */
+      var floatingBtn   = document.getElementById('floating-cart-btn');
+      var floatingCount = floatingBtn && floatingBtn.querySelector('[data-floating-cart-count]');
+
+      if (floatingBtn) {
+        if (count > 0) {
+          floatingBtn.hidden = false;
+          if (floatingCount) floatingCount.textContent = count;
+          /* Slight delay so `hidden` removal causes a repaint before transition */
+          requestAnimationFrame(function () {
+            floatingBtn.style.transform = 'scale(1)';
+            floatingBtn.style.opacity   = '1';
+          });
+        } else {
+          floatingBtn.style.transform = 'scale(0)';
+          floatingBtn.style.opacity   = '0';
+          setTimeout(function () { floatingBtn.hidden = true; }, 300);
+        }
+      }
     }
 
     // Free-shipping progress bar: capture how full it was before the swap
@@ -872,6 +892,25 @@ import '../css/app.css';
         var applyBtn = box && $('[data-coupon-apply]', box);
         if (applyBtn) applyBtn.click();
       });
+    }
+  })();
+
+  /* Initialise floating-cart visibility on page load using the server-rendered
+     count baked into [data-cart-count-badge] by Blade. */
+  (function () {
+    var badge = document.querySelector('[data-cart-count-badge]');
+    var initialCount = badge ? (parseInt(badge.textContent, 10) || 0) : 0;
+    if (initialCount > 0) {
+      var floatingBtn   = document.getElementById('floating-cart-btn');
+      var floatingCount = floatingBtn && floatingBtn.querySelector('[data-floating-cart-count]');
+      if (floatingBtn) {
+        floatingBtn.hidden = false;
+        if (floatingCount) floatingCount.textContent = initialCount;
+        requestAnimationFrame(function () {
+          floatingBtn.style.transform = 'scale(1)';
+          floatingBtn.style.opacity   = '1';
+        });
+      }
     }
   })();
 
@@ -1307,21 +1346,18 @@ import '../css/app.css';
   })();
 
   /* ------------------------------------------------------------------------
-     SUPPORT CHAT
-     Front-end only: canned auto-replies, no backend. Swap `reply()` for a
-     real endpoint when the API exists.
+     SUPPORT CHAT — vertical right-edge tab + slide-out panel.
+     Front-end only: canned auto-replies, no backend.
      ---------------------------------------------------------------------- */
   (function () {
-    var root = $('[data-chat]');
-    if (!root) return;
+    var tabBtn   = document.getElementById('chat-tab-btn');
+    var panel    = document.getElementById('chat-full-panel');
+    var closeBtn = document.getElementById('chat-close-btn');
+    var log      = panel && $('[data-chat-log]', panel);
+    var form     = panel && $('[data-chat-form]', panel);
+    var input    = panel && document.getElementById('chat-input');
 
-    var panel  = $('[data-chat-panel]', root);
-    var log    = $('[data-chat-log]', root);
-    var form   = $('[data-chat-form]', root);
-    var input  = $('[data-chat-input]', root) || $('.chat__input', root);
-    var badge  = $('[data-chat-badge]', root);
-    var tip    = $('[data-chat-tip]', root);
-    var opener = $('[data-chat-open]', root);
+    if (!tabBtn || !panel) return;
 
     var REPLIES = {
       'track my order': 'You can track your order from your account page, or share your order number here and we will check it for you.',
@@ -1333,7 +1369,8 @@ import '../css/app.css';
     var MSG_IN   = MSG_BASE + ' self-start border border-line bg-white';
     var MSG_OUT  = MSG_BASE + ' self-end bg-accent text-white';
 
-    function add(text, dir) {
+    function addMsg(text, dir) {
+      if (!log) return;
       var p = document.createElement('p');
       p.className = dir === 'out' ? MSG_OUT : MSG_IN;
       p.textContent = text;
@@ -1346,54 +1383,52 @@ import '../css/app.css';
       var text = REPLIES[key] ||
         'Thanks for reaching out. Our team will get back to you shortly. ' +
         'For anything urgent, call +91 90000 00000.';
-      setTimeout(function () { add(text, 'in'); }, 600);
+      setTimeout(function () { addMsg(text, 'in'); }, 600);
     }
 
-    function open() {
+    function openChat() {
       panel.hidden = false;
-      if (badge) badge.hidden = true;
-      if (tip) tip.hidden = true;
-      opener.setAttribute('aria-expanded', 'true');
-      if (input) input.focus();
+      requestAnimationFrame(function () {
+        panel.classList.add('is-open');
+      });
+      tabBtn.setAttribute('aria-expanded', 'true');
+      if (input) setTimeout(function () { input.focus(); }, 320);
     }
 
-    function close() {
-      panel.hidden = true;
-      opener.setAttribute('aria-expanded', 'false');
+    function closeChat() {
+      panel.classList.remove('is-open');
+      tabBtn.setAttribute('aria-expanded', 'false');
+      setTimeout(function () { panel.hidden = true; }, 300);
     }
 
-    opener.addEventListener('click', function () {
-      if (panel.hidden) { open(); } else { close(); }
+    tabBtn.addEventListener('click', function () {
+      if (panel.hidden || !panel.classList.contains('is-open')) {
+        openChat();
+      } else {
+        closeChat();
+      }
     });
 
-    $$('[data-chat-close]', root).forEach(function (el) {
-      el.addEventListener('click', close);
-    });
+    if (closeBtn) closeBtn.addEventListener('click', closeChat);
 
-    var tipClose = $('[data-chat-tip-close]', root);
-    if (tipClose) tipClose.addEventListener('click', function (e) {
-      e.stopPropagation();
-      tip.hidden = true;
-    });
-
-    $$('[data-chat-quick]', root).forEach(function (btn) {
+    $$('[data-chat-quick]', panel).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        add(btn.textContent.trim(), 'out');
+        addMsg(btn.textContent.trim(), 'out');
         reply(btn.textContent);
       });
     });
 
     if (form) form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var text = (input.value || '').trim();
+      var text = (input && input.value || '').trim();
       if (!text) return;
-      add(text, 'out');
+      addMsg(text, 'out');
       reply(text);
       form.reset();
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !panel.hidden) close();
+      if (e.key === 'Escape' && panel.classList.contains('is-open')) closeChat();
     });
   })();
 
