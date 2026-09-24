@@ -76,7 +76,7 @@ class VerifyReviewSubmissionTest extends TestCase
         return $order->fresh();
     }
 
-    public function test_review_submission_is_pending_by_default(): void
+    public function test_review_submission_is_published_immediately(): void
     {
         $product = $this->makeProduct();
 
@@ -89,7 +89,7 @@ class VerifyReviewSubmissionTest extends TestCase
 
         $review = Review::first();
         $this->assertNotNull($review);
-        $this->assertSame('pending', $review->status);
+        $this->assertSame('approved', $review->status);
     }
 
     public function test_review_from_customer_with_matching_order_is_verified(): void
@@ -237,7 +237,7 @@ class VerifyReviewSubmissionTest extends TestCase
         $review = Review::first();
         $this->assertSame($user->id, $review->user_id);
         $this->assertNull($review->customer_email);
-        $this->assertSame('pending', $review->status);
+        $this->assertSame('approved', $review->status);
     }
 
     public function test_star_filter_shows_only_that_rating(): void
@@ -251,5 +251,32 @@ class VerifyReviewSubmissionTest extends TestCase
 
         $response->assertSee('Five star body.');
         $response->assertDontSee('Two star body.');
+    }
+
+    public function test_submitted_review_is_stored_and_shown_on_the_product(): void
+    {
+        $product = $this->makeProduct();
+
+        $this->post(route('products.reviews.store', $product), [
+            'customer_name' => 'Ritu Verma',
+            'customer_email' => 'ritu@example.com',
+            'rating' => 4,
+            'title' => 'Elegant bracelet',
+            'body' => 'Looks lovely with both western and ethnic wear.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('reviews', [
+            'product_id' => $product->id,
+            'customer_name' => 'Ritu Verma',
+            'rating' => 4,
+            'title' => 'Elegant bracelet',
+            'status' => 'approved',
+        ]);
+
+        $response = $this->get(route('products.show', $product));
+        $response->assertSee('Ritu Verma');
+        $response->assertSee('Elegant bracelet');
+        $response->assertSee('Looks lovely with both western and ethnic wear.');
+        $response->assertSee('4.0&#9733;', false);
     }
 }

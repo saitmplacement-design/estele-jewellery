@@ -840,7 +840,7 @@
                   </div>
 
                   <button class="btn-cta h-11 w-full text-[14px] sm:w-auto sm:px-10" type="submit">Submit review</button>
-                  <p class="mt-2 text-[11.5px] text-muted">Reviews are checked by our team before they appear.</p>
+                  <p class="mt-2 text-[11.5px] text-muted">Your review appears on this product as soon as you submit it.</p>
                 </form>
               </div>
 

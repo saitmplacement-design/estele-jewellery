@@ -60,7 +60,9 @@ class ReviewController extends Controller
             'rating' => $validated['rating'],
             'title' => $validated['title'] ?? null,
             'body' => $validated['body'],
-            'status' => 'pending',
+            // Published straight away so shoppers see their review on the
+            // product; an admin can still hide it (Reject) from the panel.
+            'status' => 'approved',
             'is_verified_purchase' => $matchingOrder !== null,
         ]);
 
@@ -68,6 +70,6 @@ class ReviewController extends Controller
             $review->addMedia($photo)->toMediaCollection('photos');
         }
 
-        return redirect()->to(url()->previous().'#reviews')->with('review_success', 'Thanks for your review! It will appear here once approved.');
+        return redirect()->to(url()->previous().'#reviews')->with('review_success', 'Thanks for your review! It is now live on this product.');
     }
 }
