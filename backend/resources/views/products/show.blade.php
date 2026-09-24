@@ -403,9 +403,18 @@
             <p class="mb-2.5 text-[12px] font-medium tracking-wider text-muted uppercase">SKU: {{ $product->sku }}</p>
           @endif
 
+          {{-- Rating right under the name, like Amazon/Flipkart: a green
+               "4.6★" pill + review count, jumping to the reviews section. --}}
           @if($ratingCount > 0)
-            <a class="mb-3 inline-flex items-center gap-2" href="#reviews">
-              <x-review-stars :rating="$ratingAverage" :count="$ratingCount" />
+            <a class="mb-3 inline-flex items-center gap-2 text-[13px]" href="#reviews">
+              <span class="inline-flex items-center gap-0.5 rounded bg-[#1f9d55] px-1.5 py-0.5 text-[12px] font-bold leading-none text-white">{{ number_format($ratingAverage, 1) }}&#9733;</span>
+              <x-review-stars :rating="$ratingAverage" size="text-[15px]" />
+              <span class="font-medium text-accent-dark underline-offset-2 hover:underline">{{ number_format($ratingCount) }} {{ \Illuminate\Support\Str::plural('review', $ratingCount) }}</span>
+            </a>
+          @else
+            <a class="mb-3 inline-flex items-center gap-2 text-[13px]" href="#write-review" data-review-open>
+              <x-review-stars :rating="0" size="text-[15px]" />
+              <span class="font-medium text-accent-dark underline underline-offset-2">Be the first to review</span>
             </a>
           @endif
 
@@ -665,132 +674,258 @@
         </div>
       </section>
 
-      {{-- Hidden entirely until a product has at least one review: an empty
-      star row with "be the first to write a review" reads as a negative
-      signal on a PDP, so it isn't shown at all. --}}
-      <section class="border-t border-line py-6 md:py-[60px] {{ $ratingCount > 0 ? '' : 'hidden' }}" id="reviews">
-        <div class="mx-auto w-full max-w-[760px] px-4">
-          <x-section-header title="Customer Reviews" :subtitle="number_format($ratingAverage, 1) . ' out of 5, based on ' . $ratingCount . ' review' . ($ratingCount === 1 ? '' : 's')" />
-
-          @if(session('success'))
-            <p class="mb-6 rounded-lg border border-line bg-pinksoft px-4 py-3 text-center text-[13px] text-heading">
-              {{ session('success') }}</p>
-          @endif
-
-          @if($reviews->isNotEmpty())
-            <ul class="mb-8 space-y-5">
-              @foreach($reviews as $review)
-                <li class="border-b border-line pb-5">
-                  <div class="mb-1.5 flex flex-wrap items-center gap-2">
-                    <x-review-stars :rating="$review->rating" />
-                    @if($review->is_verified_purchase)
-                      <span class="text-[11px] font-medium uppercase tracking-[0.3px] text-accent">Verified Purchase</span>
-                    @endif
-                  </div>
-                  @if($review->title)
-                    <p class="mb-1 text-[14px] font-medium text-heading">{{ $review->title }}</p>
-                  @endif
-                  <p class="mb-2 text-[13.5px] leading-[1.7] text-muted">{{ $review->body }}</p>
-                  @if($review->hasMedia('photos'))
-                    <div class="mb-2 flex flex-wrap gap-2">
-                      @foreach($review->getMedia('photos') as $photo)
-                        <img class="h-16 w-16 rounded object-cover" src="{{ $photo->getUrl('thumb') }}"
-                          alt="Photo submitted with {{ $review->customer_name }}'s review" loading="lazy" width="64" height="64">
-                      @endforeach
-                    </div>
-                  @endif
-                  <p class="text-[12px] text-muted">{{ $review->customer_name }} &middot;
-                    {{ $review->displayDate()->format('d M Y') }}</p>
-                </li>
-              @endforeach
-            </ul>
-
-            <div class="mb-8">
-              {{ $reviews->links() }}
+      {{-- Ratings & reviews — Amazon/Flipkart-style summary (average, star
+           breakdown bars that double as filters), customer photos, the review
+           list and an inline "write a review" form with a tap-to-rate star
+           picker. Always shown, so the first shopper can review too. --}}
+      @php
+        $reviewTotal = (int) $ratingBreakdown->sum();
+        $reviewFormOpen = $errors->hasAny(['customer_name', 'customer_email', 'rating', 'title', 'body', 'photos', 'photos.*']);
+        $ratingWords = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very good', 5 => 'Excellent'];
+      @endphp
+      <section class="scroll-mt-20 border-t border-line bg-white py-6 md:py-12" id="reviews">
+        <div class="mx-auto w-full max-w-[980px] px-4">
+          <div class="mb-4 flex items-end justify-between gap-3 md:mb-6">
+            <div>
+              <p class="section-head__eyebrow">What customers say</p>
+              <h2 class="text-[20px] font-bold leading-tight text-heading md:text-[26px]">Ratings &amp; Reviews</h2>
             </div>
+          </div>
+
+          @if(session('review_success'))
+            <p class="mb-4 flex items-center gap-2 rounded-xl border border-[#b7e4c7] bg-[#ecfbf1] px-4 py-3 text-[13px] font-medium text-[#1a7d3f]">
+              <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              {{ session('review_success') }}
+            </p>
           @endif
 
-          <details {{ $errors->any() ? 'open' : '' }}>
-            <summary
-              class="mt-4 inline-flex items-center justify-center rounded-md border-2 border-accent px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.6px] text-accent transition-colors hover:bg-accent hover:text-white">
-              Write a Review</summary>
-            <form class="pb-4.5" action="{{ route('products.reviews.store', $product) }}" method="post"
-              enctype="multipart/form-data">
-              @csrf
-              <input class="hidden" type="text" name="website" tabindex="-1" autocomplete="off">
-
-              <div class="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_name">Name</label>
-                  <input
-                    class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading"
-                    id="customer_name" name="customer_name" type="text" value="{{ old('customer_name') }}" required>
-                  @error('customer_name')
-                  <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+          <div class="grid gap-5 md:grid-cols-[320px_1fr] md:gap-10">
+            {{-- Summary --}}
+            <div class="md:sticky md:top-28 md:self-start">
+              <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-4 md:p-5">
+                <div class="flex items-center gap-4">
+                  <div class="text-center">
+                    <p class="text-[40px] font-bold leading-none text-heading md:text-[46px]">{{ $reviewTotal ? number_format($ratingAverage, 1) : '0.0' }}</p>
+                    <p class="mt-1 text-[11px] uppercase tracking-[0.1em] text-muted">out of 5</p>
+                  </div>
+                  <div class="min-w-0">
+                    <x-review-stars :rating="$ratingAverage ?? 0" size="text-[20px]" />
+                    <p class="mt-1 text-[12.5px] text-muted">
+                      @if($reviewTotal)
+                        Based on {{ number_format($reviewTotal) }} {{ \Illuminate\Support\Str::plural('review', $reviewTotal) }}
+                      @else
+                        No reviews yet
+                      @endif
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_email">Email</label>
-                  <input
-                    class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading"
-                    id="customer_email" name="customer_email" type="email" value="{{ old('customer_email') }}" required>
-                  @error('customer_email')
-                  <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
-                </div>
-              </div>
 
-              <div class="mb-3.5">
-                <label class="mb-1.5 block text-[13px] font-medium text-heading" for="rating">Rating</label>
-                <select
-                  class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors focus:border-heading"
-                  id="rating" name="rating" required>
-                  <option value="">Select a rating</option>
-                  @for($i = 5; $i >= 1; $i--)
-                    <option value="{{ $i }}" {{ old('rating') == $i ? 'selected' : '' }}>{{ $i }}
-                      star{{ $i === 1 ? '' : 's' }}</option>
+                {{-- Breakdown bars; each row filters the list to that rating. --}}
+                <ul class="mt-4 space-y-1.5">
+                  @for($star = 5; $star >= 1; $star--)
+                    @php
+                      $count = (int) ($ratingBreakdown[$star] ?? 0);
+                      $pct = $reviewTotal ? round($count / $reviewTotal * 100) : 0;
+                      $isActive = $reviewRating === $star;
+                    @endphp
+                    <li>
+                      <a class="group flex items-center gap-2.5 rounded-md px-1 py-0.5 text-[12.5px] transition-colors {{ $isActive ? 'bg-white shadow-sm' : 'hover:bg-white/70' }} {{ $count ? '' : 'pointer-events-none opacity-60' }}"
+                         href="{{ $isActive ? request()->fullUrlWithQuery(['review_rating' => null, 'reviews_page' => null]) : request()->fullUrlWithQuery(['review_rating' => $star, 'reviews_page' => null]) }}#reviews">
+                        <span class="w-7 shrink-0 font-semibold text-heading">{{ $star }}&#9733;</span>
+                        <span class="relative h-2 flex-1 overflow-hidden rounded-full bg-line">
+                          <span class="absolute inset-y-0 left-0 rounded-full {{ $star >= 3 ? 'bg-[#1f9d55]' : ($star === 2 ? 'bg-[#f0a020]' : 'bg-[#e0483e]') }}" style="width: {{ $pct }}%"></span>
+                        </span>
+                        <span class="w-8 shrink-0 text-right text-muted">{{ $count }}</span>
+                      </a>
+                    </li>
                   @endfor
-                </select>
-                @error('rating')
-                <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                </ul>
+
+                <button class="btn-cta mt-4 h-11 w-full text-[14px]" type="button" data-review-open>
+                  <svg class="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                  Write a review
+                </button>
+                <p class="mt-2 text-center text-[11.5px] text-muted">Share your experience to help other shoppers</p>
+              </div>
+            </div>
+
+            <div class="min-w-0">
+              {{-- Write-a-review panel --}}
+              <div class="mb-5 rounded-2xl border border-line bg-paper p-4 md:p-5 {{ $reviewFormOpen ? '' : 'hidden' }}" data-review-form-panel>
+                <div class="mb-3 flex items-center justify-between">
+                  <h3 class="text-[16px] font-bold text-heading">Write a review</h3>
+                  <button class="grid h-8 w-8 place-items-center rounded-full text-heading hover:bg-white" type="button" data-review-close aria-label="Close">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+                  </button>
+                </div>
+                <form action="{{ route('products.reviews.store', $product) }}" method="post" enctype="multipart/form-data">
+                  @csrf
+                  <input class="hidden" type="text" name="website" tabindex="-1" autocomplete="off">
+
+                  <fieldset class="mb-4">
+                    <legend class="mb-1.5 text-[13px] font-semibold text-heading">Your rating <span class="text-salebadge">*</span></legend>
+                    <div class="flex items-center gap-3">
+                      <div class="star-input" data-star-input>
+                        @for($i = 5; $i >= 1; $i--)
+                          <input class="sr-only-custom" type="radio" id="rate-{{ $i }}" name="rating" value="{{ $i }}" @checked(old('rating') == $i) required>
+                          <label for="rate-{{ $i }}" title="{{ $ratingWords[$i] }}" aria-label="{{ $i }} star{{ $i === 1 ? '' : 's' }}">&#9733;</label>
+                        @endfor
+                      </div>
+                      <span class="text-[13px] font-medium text-muted" data-star-word>{{ old('rating') ? $ratingWords[(int) old('rating')] : 'Tap to rate' }}</span>
+                    </div>
+                    @error('rating') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                  </fieldset>
+
+                  <div class="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-1 block text-[13px] font-semibold text-heading" for="customer_name">Name <span class="text-salebadge">*</span></label>
+                      <input class="w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-[14px] outline-none focus:border-heading" id="customer_name" name="customer_name" type="text" value="{{ old('customer_name', auth()->user()?->name) }}" required maxlength="100">
+                      @error('customer_name') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                    </div>
+                    @guest
+                      <div>
+                        <label class="mb-1 block text-[13px] font-semibold text-heading" for="customer_email">Email <span class="text-salebadge">*</span></label>
+                        <input class="w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-[14px] outline-none focus:border-heading" id="customer_email" name="customer_email" type="email" value="{{ old('customer_email') }}" required>
+                        <p class="mt-1 text-[11px] text-muted">Never shown publicly.</p>
+                        @error('customer_email') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                      </div>
+                    @endguest
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="mb-1 block text-[13px] font-semibold text-heading" for="title">Review title</label>
+                    <input class="w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-[14px] outline-none focus:border-heading" id="title" name="title" type="text" value="{{ old('title') }}" maxlength="150" placeholder="Sum it up in a few words">
+                    @error('title') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="mb-1 block text-[13px] font-semibold text-heading" for="body">Your review <span class="text-salebadge">*</span></label>
+                    <textarea class="w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-[14px] outline-none focus:border-heading" id="body" name="body" rows="4" required maxlength="3000" placeholder="How does it look, feel and fit? Would you recommend it?">{{ old('body') }}</textarea>
+                    @error('body') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                  </div>
+
+                  <div class="mb-4">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-line-strong bg-white px-3.5 py-3 text-[13px] text-muted hover:border-heading" for="photos">
+                      <svg class="h-6 w-6 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 7h3l2-3h8l2 3h3v13H3z"/><circle cx="12" cy="13" r="4"/></svg>
+                      <span data-photo-label>Add photos <span class="text-[11.5px]">(optional, up to 3)</span></span>
+                    </label>
+                    <input class="sr-only-custom" id="photos" name="photos[]" type="file" accept="image/*" multiple data-photo-input>
+                    @error('photos') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                    @error('photos.*') <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
+                  </div>
+
+                  <button class="btn-cta h-11 w-full text-[14px] sm:w-auto sm:px-10" type="submit">Submit review</button>
+                  <p class="mt-2 text-[11.5px] text-muted">Reviews are checked by our team before they appear.</p>
+                </form>
               </div>
 
-              <div class="mb-3.5">
-                <label class="mb-1.5 block text-[13px] font-medium text-heading" for="title">Title (optional)</label>
-                <input
-                  class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading"
-                  id="title" name="title" type="text" value="{{ old('title') }}">
-                @error('title')
-                <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
-              </div>
+              {{-- Customer photos --}}
+              @if($reviewPhotos->isNotEmpty())
+                <div class="mb-5">
+                  <p class="mb-2 text-[13px] font-semibold text-heading">Customer photos</p>
+                  <div class="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
+                    @foreach($reviewPhotos as $photo)
+                      <img class="h-20 w-20 shrink-0 rounded-lg object-cover" src="{{ $photo->getUrl('thumb') }}" alt="Customer photo" loading="lazy" width="80" height="80">
+                    @endforeach
+                  </div>
+                </div>
+              @endif
 
-              <div class="mb-3.5">
-                <label class="mb-1.5 block text-[13px] font-medium text-heading" for="body">Review</label>
-                <textarea
-                  class="w-full border border-line-strong bg-white px-4 py-3 text-[14px] outline-none transition-colors placeholder:text-muted focus:border-heading"
-                  id="body" name="body" rows="4" required>{{ old('body') }}</textarea>
-                @error('body')
-                <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
-              </div>
+              @if($reviewRating)
+                <p class="mb-3 flex flex-wrap items-center gap-2 text-[13px] text-muted">
+                  Showing {{ $reviewRating }}&#9733; reviews
+                  <a class="font-semibold text-accent-dark underline" href="{{ request()->fullUrlWithQuery(['review_rating' => null, 'reviews_page' => null]) }}#reviews">Show all</a>
+                </p>
+              @endif
 
-              <div class="mb-5">
-                <label class="mb-1.5 block text-[13px] font-medium text-heading" for="photos">Photos (optional, up to
-                  3)</label>
-                <input
-                  class="w-full border border-line-strong bg-white px-4 py-3 text-[13px] outline-none transition-colors focus:border-heading"
-                  id="photos" name="photos[]" type="file" accept="image/*" multiple>
-                @error('photos')
-                <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
-                @error('photos.*')
-                <p class="mt-1 text-[12px] text-salebadge">{{ $message }}</p> @enderror
-              </div>
+              @if($reviews->isNotEmpty())
+                <ul class="space-y-3">
+                  @foreach($reviews as $review)
+                    <li class="rounded-2xl border border-line bg-white p-4">
+                      <div class="flex items-start gap-3">
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pinksoft text-[15px] font-bold uppercase text-accent-dark" aria-hidden="true">{{ \Illuminate\Support\Str::substr(trim($review->customer_name), 0, 1) }}</span>
+                        <div class="min-w-0 flex-1">
+                          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <p class="text-[14px] font-semibold text-heading">{{ $review->customer_name }}</p>
+                            @if($review->is_verified_purchase)
+                              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a7d3f]">
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 5v6c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5l-8-3zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3z"/></svg>
+                                Verified Purchase
+                              </span>
+                            @endif
+                          </div>
+                          <div class="mt-1 flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11.5px] font-bold leading-none text-white {{ $review->rating >= 3 ? 'bg-[#1f9d55]' : ($review->rating === 2 ? 'bg-[#f0a020]' : 'bg-[#e0483e]') }}">{{ $review->rating }}&#9733;</span>
+                            <span class="text-[11.5px] text-muted">{{ $review->displayDate()->format('d M Y') }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      @if($review->title)
+                        <p class="mt-3 text-[14px] font-semibold text-heading">{{ $review->title }}</p>
+                      @endif
+                      <p class="mt-1.5 text-[13.5px] leading-[1.65] text-[#4a4a4a]">{{ $review->body }}</p>
+                      @if($review->hasMedia('photos'))
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          @foreach($review->getMedia('photos') as $photo)
+                            <img class="h-20 w-20 rounded-lg object-cover" src="{{ $photo->getUrl('thumb') }}"
+                              alt="Photo from {{ $review->customer_name }}'s review" loading="lazy" width="80" height="80">
+                          @endforeach
+                        </div>
+                      @endif
+                    </li>
+                  @endforeach
+                </ul>
 
-              <button class="btn-cta w-auto px-8 text-[14px]" type="submit">
-                Submit Review
-              </button>
-            </form>
-          </details>
+                @if($reviews->hasPages())
+                  <div class="mt-5">{{ $reviews->links() }}</div>
+                @endif
+              @else
+                <div class="rounded-2xl border border-dashed border-line-strong bg-paper px-5 py-8 text-center">
+                  <p class="text-[26px] tracking-[0.15em] text-line-strong">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+                  <p class="mt-2 text-[15px] font-semibold text-heading">{{ $reviewRating ? 'No '.$reviewRating.'-star reviews yet' : 'No reviews yet' }}</p>
+                  <p class="mt-1 text-[13px] text-muted">Be the first to share how this piece looks and feels.</p>
+                  <button class="btn-cta-outline mx-auto mt-4 h-10 w-auto px-6 text-[13px]" type="button" data-review-open>Write the first review</button>
+                </div>
+              @endif
+            </div>
+          </div>
         </div>
       </section>
 
+      @push('scripts')
+        <script>
+          (function () {
+            var panel = document.querySelector('[data-review-form-panel]');
+            if (!panel) return;
+            document.querySelectorAll('[data-review-open]').forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                panel.classList.remove('hidden');
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                var first = panel.querySelector('.star-input label');
+                if (first) setTimeout(function () { first.focus && first.focus(); }, 300);
+              });
+            });
+            var close = panel.querySelector('[data-review-close]');
+            if (close) close.addEventListener('click', function () { panel.classList.add('hidden'); });
+
+            var words = @json($ratingWords);
+            var wordEl = panel.querySelector('[data-star-word]');
+            panel.querySelectorAll('[data-star-input] input').forEach(function (input) {
+              input.addEventListener('change', function () { if (wordEl) wordEl.textContent = words[input.value]; });
+            });
+
+            var photoInput = panel.querySelector('[data-photo-input]');
+            var photoLabel = panel.querySelector('[data-photo-label]');
+            if (photoInput && photoLabel) photoInput.addEventListener('change', function () {
+              var n = photoInput.files.length;
+              if (n > 3) { alert('Please choose up to 3 photos.'); photoInput.value = ''; n = 0; }
+              photoLabel.textContent = n ? n + ' photo' + (n === 1 ? '' : 's') + ' selected' : 'Add photos (optional, up to 3)';
+            });
+
+            if (location.hash === '#write-review') document.querySelector('[data-review-open]').click();
+          })();
+        </script>
+      @endpush
 @endsection
 
     @push('scripts')

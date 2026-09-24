@@ -18,7 +18,9 @@ class ReviewController extends Controller
 
         $validated = $request->validate([
             'customer_name' => ['required', 'string', 'max:100'],
-            'customer_email' => ['required', 'email', 'max:255'],
+            // Signed-in shoppers are identified by their account (phone-OTP
+            // accounts often have no email), so email is only asked of guests.
+            'customer_email' => [$request->user() ? 'nullable' : 'required', 'email', 'max:255'],
             'rating' => ['required', 'integer', 'between:1,5'],
             'title' => ['nullable', 'string', 'max:150'],
             'body' => ['required', 'string', 'max:3000'],
@@ -29,7 +31,21 @@ class ReviewController extends Controller
         // "Verified purchase" = a non-cancelled order under this email that
         // actually contains this product — doesn't require delivery, matching
         // how most storefronts badge it as soon as the order is confirmed.
-        $matchingOrder = Order::where('customer_email', $validated['customer_email'])
+        $user = $request->user();
+        $email = $validated['customer_email'] ?? $user?->email;
+
+        $matchingOrder = Order::query()
+            ->where(function ($query) use ($user, $email) {
+                if ($email) {
+                    $query->where('customer_email', $email);
+                }
+                if ($user) {
+                    $query->orWhere('user_id', $user->id);
+                }
+                if (! $email && ! $user) {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->where('status', '!=', 'cancelled')
             ->whereHas('items', fn ($query) => $query->where('product_id', $product->id))
             ->latest()
@@ -37,9 +53,10 @@ class ReviewController extends Controller
 
         $review = Review::create([
             'product_id' => $product->id,
+            'user_id' => $user?->id,
             'order_id' => $matchingOrder?->id,
             'customer_name' => $validated['customer_name'],
-            'customer_email' => $validated['customer_email'],
+            'customer_email' => $email,
             'rating' => $validated['rating'],
             'title' => $validated['title'] ?? null,
             'body' => $validated['body'],
@@ -51,6 +68,6 @@ class ReviewController extends Controller
             $review->addMedia($photo)->toMediaCollection('photos');
         }
 
-        return back()->with('success', 'Thanks for your review! It will appear once approved.');
+        return redirect()->to(url()->previous().'#reviews')->with('review_success', 'Thanks for your review! It will appear here once approved.');
     }
 }

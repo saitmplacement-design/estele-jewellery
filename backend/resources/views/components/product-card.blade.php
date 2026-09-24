@@ -39,17 +39,19 @@
       <svg class="h-6 w-6" viewBox="0 0 24 24" fill="rgba(255,255,255,0.25)" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.2l7.7-7.7 1.1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
     </button>
 
-    @if($reviewCount > 0)
-      <span class="absolute bottom-1.5 left-1.5 z-[2] inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-[3px] text-[11px] font-bold leading-none text-heading">
-        <svg class="h-3 w-3 text-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9 1-5 4.8 1.2 6.9L12 17.8 5.9 21l1.2-6.9-5-4.8 6.9-1z"/></svg>{{ number_format($rating, 1) }}
-      </span>
-    @endif
   </a>
 
   <div class="flex flex-1 flex-col pt-2">
     <h3 class="mb-1.5 line-clamp-2 text-[13px] font-normal leading-snug text-heading md:text-[14.5px]">
       <a class="transition-colors hover:text-rose" href="{{ route('products.show', $product) }}">{{ $product->title }}</a>
     </h3>
+    @if($reviewCount > 0)
+      {{-- Rating under the name, Flipkart-style. --}}
+      <div class="mb-1 flex items-center gap-1.5">
+        <span class="inline-flex items-center gap-0.5 rounded bg-[#1f9d55] px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">{{ number_format($rating, 1) }}&#9733;</span>
+        <span class="text-[11.5px] text-muted">({{ number_format($reviewCount) }})</span>
+      </div>
+    @endif
     <div class="mb-2.5 flex flex-wrap items-baseline gap-x-1.5">
       <span class="text-[14px] font-bold text-price md:text-[16px]">₹ {{ number_format($product->price, 0) }}</span>
       @if($product->compare_at_price)

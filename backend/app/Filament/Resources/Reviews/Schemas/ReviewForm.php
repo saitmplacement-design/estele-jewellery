@@ -60,6 +60,10 @@ class ReviewForm
                             ])
                             ->default(5)
                             ->required(),
+                        TextInput::make('title')
+                            ->label('Review Title')
+                            ->maxLength(150)
+                            ->columnSpanFull(),
                         Textarea::make('body')
                             ->label('Review Message')
                             ->rows(4)

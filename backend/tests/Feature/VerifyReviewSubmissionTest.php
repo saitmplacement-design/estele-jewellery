@@ -209,4 +209,47 @@ class VerifyReviewSubmissionTest extends TestCase
         $this->assertSame(1, $product->reviewsCount());
         $this->assertSame(5.0, $product->reviewsAverageRating());
     }
+
+    public function test_reviews_section_and_write_form_show_even_without_reviews(): void
+    {
+        $product = $this->makeProduct();
+
+        $response = $this->get(route('products.show', $product));
+
+        $response->assertOk();
+        $response->assertSee('id="reviews"', false);
+        $response->assertSee('Be the first to review');
+        $response->assertSee('No reviews yet');
+        $response->assertSee('name="rating"', false);
+    }
+
+    public function test_signed_in_shopper_can_review_without_an_email(): void
+    {
+        $product = $this->makeProduct();
+        $user = \App\Models\User::factory()->create(['email' => null, 'phone' => '9876500009']);
+
+        $this->actingAs($user)->post(route('products.reviews.store', $product), [
+            'customer_name' => 'Phone Shopper',
+            'rating' => 5,
+            'body' => 'Love it.',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $review = Review::first();
+        $this->assertSame($user->id, $review->user_id);
+        $this->assertNull($review->customer_email);
+        $this->assertSame('pending', $review->status);
+    }
+
+    public function test_star_filter_shows_only_that_rating(): void
+    {
+        $product = $this->makeProduct();
+        foreach ([[5, 'Five star body.'], [2, 'Two star body.']] as [$rating, $body]) {
+            Review::create(['product_id' => $product->id, 'customer_name' => 'A', 'rating' => $rating, 'body' => $body, 'status' => 'approved']);
+        }
+
+        $response = $this->get(route('products.show', $product).'?review_rating=5');
+
+        $response->assertSee('Five star body.');
+        $response->assertDontSee('Two star body.');
+    }
 }
