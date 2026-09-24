@@ -683,12 +683,12 @@
         $reviewFormOpen = $errors->hasAny(['customer_name', 'customer_email', 'rating', 'title', 'body', 'photos', 'photos.*']);
         $ratingWords = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very good', 5 => 'Excellent'];
       @endphp
-      <section class="scroll-mt-20 border-t border-line bg-white py-6 md:py-12" id="reviews">
+      <section class="scroll-mt-20 border-t border-line bg-white py-5 md:py-12" id="reviews">
         <div class="mx-auto w-full max-w-[980px] px-4">
-          <div class="mb-4 flex items-end justify-between gap-3 md:mb-6">
+          <div class="mb-3 flex items-end justify-between gap-3 md:mb-6">
             <div>
               <p class="section-head__eyebrow">What customers say</p>
-              <h2 class="text-[20px] font-bold leading-tight text-heading md:text-[26px]">Ratings &amp; Reviews</h2>
+              <h2 class="text-[18px] font-bold leading-tight text-heading md:text-[26px]">Ratings &amp; Reviews</h2>
             </div>
           </div>
 
@@ -699,20 +699,21 @@
             </p>
           @endif
 
-          <div class="grid gap-5 md:grid-cols-[320px_1fr] md:gap-10">
+          <div class="grid gap-4 md:grid-cols-[320px_1fr] md:gap-10">
             {{-- Summary --}}
             <div class="md:sticky md:top-28 md:self-start">
-              <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-4 md:p-5">
-                <div class="flex items-center gap-4">
+              <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-3.5 md:p-5">
+                <div class="grid grid-cols-[auto_1fr] items-center gap-4 md:block">
+                <div class="flex flex-col items-center gap-1 md:flex-row md:gap-4">
                   <div class="text-center">
-                    <p class="text-[40px] font-bold leading-none text-heading md:text-[46px]">{{ $reviewTotal ? number_format($ratingAverage, 1) : '0.0' }}</p>
+                    <p class="text-[34px] font-bold leading-none text-heading md:text-[46px]">{{ $reviewTotal ? number_format($ratingAverage, 1) : '0.0' }}</p>
                     <p class="mt-1 text-[11px] uppercase tracking-[0.1em] text-muted">out of 5</p>
                   </div>
-                  <div class="min-w-0">
-                    <x-review-stars :rating="$ratingAverage ?? 0" size="text-[20px]" />
-                    <p class="mt-1 text-[12.5px] text-muted">
+                  <div class="min-w-0 text-center md:text-left">
+                    <x-review-stars :rating="$ratingAverage ?? 0" size="text-[14px] md:text-[20px]" />
+                    <p class="mt-0.5 whitespace-nowrap text-[11px] text-muted md:mt-1 md:text-[12.5px]">
                       @if($reviewTotal)
-                        Based on {{ number_format($reviewTotal) }} {{ \Illuminate\Support\Str::plural('review', $reviewTotal) }}
+                        {{ number_format($reviewTotal) }} {{ \Illuminate\Support\Str::plural('review', $reviewTotal) }}
                       @else
                         No reviews yet
                       @endif
@@ -721,7 +722,7 @@
                 </div>
 
                 {{-- Breakdown bars; each row filters the list to that rating. --}}
-                <ul class="mt-4 space-y-1.5">
+                <ul class="space-y-0.5 md:mt-4 md:space-y-1.5">
                   @for($star = 5; $star >= 1; $star--)
                     @php
                       $count = (int) ($ratingBreakdown[$star] ?? 0);
@@ -729,23 +730,24 @@
                       $isActive = $reviewRating === $star;
                     @endphp
                     <li>
-                      <a class="group flex items-center gap-2.5 rounded-md px-1 py-0.5 text-[12.5px] transition-colors {{ $isActive ? 'bg-white shadow-sm' : 'hover:bg-white/70' }} {{ $count ? '' : 'pointer-events-none opacity-60' }}"
+                      <a class="group flex items-center gap-2 rounded-md px-1 py-px text-[11.5px] md:gap-2.5 md:py-0.5 md:text-[12.5px] transition-colors {{ $isActive ? 'bg-white shadow-sm' : 'hover:bg-white/70' }} {{ $count ? '' : 'pointer-events-none opacity-60' }}"
                          href="{{ $isActive ? request()->fullUrlWithQuery(['review_rating' => null, 'reviews_page' => null]) : request()->fullUrlWithQuery(['review_rating' => $star, 'reviews_page' => null]) }}#reviews">
-                        <span class="w-7 shrink-0 font-semibold text-heading">{{ $star }}&#9733;</span>
-                        <span class="relative h-2 flex-1 overflow-hidden rounded-full bg-line">
+                        <span class="w-6 shrink-0 font-semibold text-heading md:w-7">{{ $star }}&#9733;</span>
+                        <span class="relative h-1.5 flex-1 md:h-2 overflow-hidden rounded-full bg-line">
                           <span class="absolute inset-y-0 left-0 rounded-full {{ $star >= 3 ? 'bg-[#1f9d55]' : ($star === 2 ? 'bg-[#f0a020]' : 'bg-[#e0483e]') }}" style="width: {{ $pct }}%"></span>
                         </span>
-                        <span class="w-8 shrink-0 text-right text-muted">{{ $count }}</span>
+                        <span class="w-6 shrink-0 text-right text-muted md:w-8">{{ $count }}</span>
                       </a>
                     </li>
                   @endfor
                 </ul>
+                </div>
 
-                <button class="btn-cta mt-4 h-11 w-full text-[14px]" type="button" data-review-open>
+                <button class="btn-cta mt-3 h-10 w-full text-[13.5px] md:mt-4 md:h-11 md:text-[14px]" type="button" data-review-open>
                   <svg class="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
                   Write a review
                 </button>
-                <p class="mt-2 text-center text-[11.5px] text-muted">Share your experience to help other shoppers</p>
+                <p class="mt-2 hidden text-center text-[11.5px] text-muted md:block">Share your experience to help other shoppers</p>
               </div>
             </div>
 
@@ -821,11 +823,11 @@
 
               {{-- Customer photos --}}
               @if($reviewPhotos->isNotEmpty())
-                <div class="mb-5">
+                <div class="mb-3 md:mb-5">
                   <p class="mb-2 text-[13px] font-semibold text-heading">Customer photos</p>
                   <div class="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
                     @foreach($reviewPhotos as $photo)
-                      <img class="h-20 w-20 shrink-0 rounded-lg object-cover" src="{{ $photo->getUrl('thumb') }}" alt="Customer photo" loading="lazy" width="80" height="80">
+                      <img class="h-16 w-16 shrink-0 md:h-20 md:w-20 rounded-lg object-cover" src="{{ $photo->getUrl('thumb') }}" alt="Customer photo" loading="lazy" width="80" height="80">
                     @endforeach
                   </div>
                 </div>
@@ -839,11 +841,11 @@
               @endif
 
               @if($reviews->isNotEmpty())
-                <ul class="space-y-3">
+                <ul class="space-y-2.5 md:space-y-3" data-review-list>
                   @foreach($reviews as $review)
-                    <li class="rounded-2xl border border-line bg-white p-4">
-                      <div class="flex items-start gap-3">
-                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pinksoft text-[15px] font-bold uppercase text-accent-dark" aria-hidden="true">{{ \Illuminate\Support\Str::substr(trim($review->customer_name), 0, 1) }}</span>
+                    <li class="rounded-xl border border-line bg-white p-3 md:rounded-2xl md:p-4 {{ $loop->index >= 2 ? 'max-md:hidden' : '' }}" @if($loop->index >= 2) data-review-extra @endif>
+                      <div class="flex items-start gap-2.5 md:gap-3">
+                        <span class="grid h-8 w-8 shrink-0 md:h-10 md:w-10 place-items-center rounded-full bg-pinksoft text-[15px] font-bold uppercase text-accent-dark" aria-hidden="true">{{ \Illuminate\Support\Str::substr(trim($review->customer_name), 0, 1) }}</span>
                         <div class="min-w-0 flex-1">
                           <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <p class="text-[14px] font-semibold text-heading">{{ $review->customer_name }}</p>
@@ -861,13 +863,14 @@
                         </div>
                       </div>
                       @if($review->title)
-                        <p class="mt-3 text-[14px] font-semibold text-heading">{{ $review->title }}</p>
+                        <p class="mt-2 text-[13.5px] font-semibold text-heading md:mt-3 md:text-[14px]">{{ $review->title }}</p>
                       @endif
-                      <p class="mt-1.5 text-[13.5px] leading-[1.65] text-[#4a4a4a]">{{ $review->body }}</p>
+                      <p class="mt-1 line-clamp-3 text-[13px] leading-[1.6] text-[#4a4a4a] md:mt-1.5 md:line-clamp-none md:text-[13.5px]" data-review-body>{{ $review->body }}</p>
+                      <button class="mt-1 hidden text-[12px] font-semibold text-accent-dark" type="button" data-review-more>Read more</button>
                       @if($review->hasMedia('photos'))
-                        <div class="mt-3 flex flex-wrap gap-2">
+                        <div class="mt-2 flex flex-wrap gap-2 md:mt-3">
                           @foreach($review->getMedia('photos') as $photo)
-                            <img class="h-20 w-20 rounded-lg object-cover" src="{{ $photo->getUrl('thumb') }}"
+                            <img class="h-16 w-16 rounded-lg object-cover md:h-20 md:w-20" src="{{ $photo->getUrl('thumb') }}"
                               alt="Photo from {{ $review->customer_name }}'s review" loading="lazy" width="80" height="80">
                           @endforeach
                         </div>
@@ -876,11 +879,14 @@
                   @endforeach
                 </ul>
 
+                @if($reviews->count() > 2)
+                  <button class="btn-cta-outline mt-3 h-10 w-full text-[13px] md:hidden" type="button" data-review-show-all>View all {{ number_format($reviewRating ? $reviews->total() : $reviewTotal) }} reviews</button>
+                @endif
                 @if($reviews->hasPages())
-                  <div class="mt-5">{{ $reviews->links() }}</div>
+                  <div class="mt-5 {{ $reviews->count() > 2 ? 'max-md:hidden' : '' }}" data-review-extra>{{ $reviews->links() }}</div>
                 @endif
               @else
-                <div class="rounded-2xl border border-dashed border-line-strong bg-paper px-5 py-8 text-center">
+                <div class="rounded-2xl border border-dashed border-line-strong bg-paper px-5 py-5 text-center md:py-8">
                   <p class="text-[26px] tracking-[0.15em] text-line-strong">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
                   <p class="mt-2 text-[15px] font-semibold text-heading">{{ $reviewRating ? 'No '.$reviewRating.'-star reviews yet' : 'No reviews yet' }}</p>
                   <p class="mt-1 text-[13px] text-muted">Be the first to share how this piece looks and feels.</p>
@@ -920,6 +926,25 @@
               var n = photoInput.files.length;
               if (n > 3) { alert('Please choose up to 3 photos.'); photoInput.value = ''; n = 0; }
               photoLabel.textContent = n ? n + ' photo' + (n === 1 ? '' : 's') + ' selected' : 'Add photos (optional, up to 3)';
+            });
+
+            // Phones start with two reviews; the rest (and paging) on request.
+            var showAll = document.querySelector('[data-review-show-all]');
+            if (showAll) showAll.addEventListener('click', function () {
+              document.querySelectorAll('[data-review-extra]').forEach(function (el) { el.classList.remove('max-md:hidden'); });
+              showAll.remove();
+            });
+            if (/reviews_page=\d/.test(location.search) && showAll) showAll.click();
+
+            // "Read more" only on reviews actually cut off by the 3-line clamp.
+            document.querySelectorAll('[data-review-body]').forEach(function (body) {
+              var more = body.nextElementSibling;
+              if (!more || !more.hasAttribute('data-review-more')) return;
+              if (body.scrollHeight > body.clientHeight + 2) more.classList.remove('hidden');
+              more.addEventListener('click', function () {
+                var open = body.classList.toggle('line-clamp-3');
+                more.textContent = open ? 'Read more' : 'Show less';
+              });
             });
 
             if (location.hash === '#write-review') document.querySelector('[data-review-open]').click();
