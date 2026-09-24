@@ -325,7 +325,12 @@
   .footer-mobile { display: block; }
   .footer-desktop { display: none; }
 </style>
-@include('partials.footer')
+{{-- Focused pages (sign-in, bag, checkout, payment) end at their content,
+     without the site-wide footer, so nothing competes with the one action
+     the page is for. --}}
+@unless(request()->routeIs('login', 'login.*', 'register', 'panel.password.*', 'cart.*', 'checkout.*', 'payment.*'))
+  @include('partials.footer')
+@endunless
 
 {{-- Mobile tab bar. Rendered after the footer so it's the last fixed element
      in the source order; it hides itself from md up. The spacer keeps the
@@ -487,22 +492,6 @@
      control below md, so it must always be rendered. --}}
 @yield('sticky_bar')
 
-{{--
-  Back-to-top sits above the chat bubble.
-  Mobile: chat bubble at 68px (48px tall) → clear at 128px; pages with a
-  .buybar lift both (see app.css).
-  Desktop: floating cart at bottom-22px (58px tall) → clear at 92px.
-  pointer-events-none until it fades in (app.js), so the invisible button
-  never swallows taps meant for whatever is underneath it.
---}}
-<style>
-  .back-to-top-btn { bottom: calc(128px + env(safe-area-inset-bottom)); right: 12px; }
-  @media (min-width: 768px) { .back-to-top-btn { bottom: 92px; right: 22px; } }
-</style>
-<button class="back-to-top-btn pointer-events-none fixed z-[90] grid h-[42px] w-[42px] translate-y-2.5 place-items-center rounded-full bg-heading text-white opacity-0 transition-all hover:bg-accent"
-        type="button" data-to-top aria-label="Back to top">
-  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-</button>
 
 
 <script src="{{ asset('theme/app.js') }}?v={{ @filemtime(public_path('theme/app.js')) }}"></script>

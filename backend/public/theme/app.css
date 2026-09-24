@@ -1311,17 +1311,7 @@
     box-shadow: 0 -2px 9px #00000014, 0 -1px 2px #00000026;
   }
 
-  body:has(.buybar) .bottom-nav, body:has(.buybar) .bottom-nav-spacer {
-    display: none;
-  }
-
-  @media (max-width: 767px) {
-    body:has(.buybar) .back-to-top-btn {
-      bottom: calc(139px + env(safe-area-inset-bottom));
-    }
-  }
-
-  body:has(.listing-bar) .bottom-nav, body:has(.listing-bar) .bottom-nav-spacer {
+  body:has(.buybar) .bottom-nav, body:has(.buybar) .bottom-nav-spacer, body:has(.listing-bar) .bottom-nav, body:has(.listing-bar) .bottom-nav-spacer {
     display: none;
   }
 
@@ -2575,10 +2565,6 @@
     z-index: 3;
   }
 
-  .z-\[90\] {
-    z-index: 90;
-  }
-
   .z-\[100\] {
     z-index: 100;
   }
@@ -3121,10 +3107,6 @@
     height: 38px;
   }
 
-  .h-\[42px\] {
-    height: 42px;
-  }
-
   .h-\[49px\] {
     height: 49px;
   }
@@ -3315,10 +3297,6 @@
 
   .w-\[38px\] {
     width: 38px;
-  }
-
-  .w-\[42px\] {
-    width: 42px;
   }
 
   .w-\[58px\] {

@@ -329,10 +329,6 @@
         bottom: 84px !important;
       }
 
-      .back-to-top-btn {
-        bottom: 144px !important;
-      }
-
       /* The page ends at the content on mobile — the full footer is hidden
            so the product page doesn't scroll on past the purchase actions
            into site-wide links, and the gap the sticky bar used to leave
