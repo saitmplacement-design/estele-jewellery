@@ -3566,15 +3566,15 @@ xl:flex-[0_0_calc((100%-7*20px)/8)] text-center">
 
 </div>
 
-  <!-- Floating Cart Icon (only appears when cart has items) -->
-  <div id="floating-cart" style="position: fixed; bottom: 18px; right: 18px; z-index: 119;" hidden>
-    <a href="cart.html" style="display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; background: linear-gradient(135deg, #CB6B88, #AD3D5F); border-radius: 50%; box-shadow: 0 4px 12px rgba(203, 107, 136, 0.4); position: relative; transition: transform 0.3s ease;" aria-label="View Cart">
-      <svg style="width: 24px; height: 24px; color: white;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <!-- ============================ FLOATING CART ICON ========================== -->
+  <div id="floating-cart" hidden>
+    <a href="cart.html" aria-label="View Cart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
         <path d="M3 6h18" />
         <path d="M16 10a4 4 0 0 1-8 0" />
       </svg>
-      <span data-floating-cart-count style="position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; display: grid; place-items: center; background: #1F1D1D; color: white; border-radius: 50%; font-size: 11px; font-weight: 700; border: 2px solid white; padding: 0 6px;" hidden>0</span>
+      <span data-floating-cart-count hidden>0</span>
     </a>
   </div>
 
