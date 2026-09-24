@@ -4966,6 +4966,10 @@
     mask-repeat: repeat;
   }
 
+  .stroke-line {
+    stroke: var(--color-line);
+  }
+
   .object-contain {
     object-fit: contain;
   }
