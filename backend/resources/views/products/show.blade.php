@@ -699,8 +699,10 @@
             </p>
           @endif
 
-          <div class="grid gap-4 md:grid-cols-[320px_1fr] md:gap-10">
-            {{-- Summary --}}
+          <div class="grid gap-4 md:gap-10 {{ $reviewTotal ? 'md:grid-cols-[320px_1fr]' : '' }}">
+            {{-- Summary — only once customers have reviewed; a product with no
+                 reviews gets a single compact prompt instead of 0.0 and empty bars. --}}
+            @if($reviewTotal)
             <div class="md:sticky md:top-28 md:self-start">
               <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-3.5 md:p-5">
                 <div class="grid grid-cols-[auto_1fr] items-center gap-4 md:block">
@@ -750,6 +752,12 @@
                 <p class="mt-2 hidden text-center text-[11.5px] text-muted md:block">Share your experience to help other shoppers</p>
               </div>
             </div>
+            @else
+              <div class="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper px-4 py-3 md:col-span-2">
+                <p class="text-[13px] text-muted">No reviews yet. Be the first to share your experience.</p>
+                <button class="btn-cta h-9 w-auto shrink-0 px-4 text-[13px]" type="button" data-review-open>Write a review</button>
+              </div>
+            @endif
 
             <div class="min-w-0">
               {{-- Write-a-review panel --}}
@@ -841,9 +849,11 @@
               @endif
 
               @if($reviews->isNotEmpty())
-                <ul class="space-y-2.5 md:space-y-3" data-review-list>
+                {{-- Phones: one swipeable row of review cards (Flipkart-style
+                     "top reviews") instead of a tall stack; md+: a list. --}}
+                <ul class="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:block md:space-y-3 md:overflow-visible md:px-0 md:pb-0" data-review-list>
                   @foreach($reviews as $review)
-                    <li class="rounded-xl border border-line bg-white p-3 md:rounded-2xl md:p-4 {{ $loop->index >= 2 ? 'max-md:hidden' : '' }}" @if($loop->index >= 2) data-review-extra @endif>
+                    <li class="w-[84%] shrink-0 snap-start rounded-xl border border-line bg-white p-3 md:w-auto md:rounded-2xl md:p-4">
                       <div class="flex items-start gap-2.5 md:gap-3">
                         <span class="grid h-8 w-8 shrink-0 md:h-10 md:w-10 place-items-center rounded-full bg-pinksoft text-[15px] font-bold uppercase text-accent-dark" aria-hidden="true">{{ \Illuminate\Support\Str::substr(trim($review->customer_name), 0, 1) }}</span>
                         <div class="min-w-0 flex-1">
@@ -879,13 +889,13 @@
                   @endforeach
                 </ul>
 
-                @if($reviews->count() > 2)
-                  <button class="btn-cta-outline mt-3 h-10 w-full text-[13px] md:hidden" type="button" data-review-show-all>View all {{ number_format($reviewRating ? $reviews->total() : $reviewTotal) }} reviews</button>
+                @if($reviews->count() > 1)
+                  <p class="mt-2 text-center text-[11.5px] text-muted md:hidden">Swipe to see more reviews &rarr;</p>
                 @endif
                 @if($reviews->hasPages())
-                  <div class="mt-5 {{ $reviews->count() > 2 ? 'max-md:hidden' : '' }}" data-review-extra>{{ $reviews->links() }}</div>
+                  <div class="mt-4 md:mt-5">{{ $reviews->links() }}</div>
                 @endif
-              @else
+              @elseif($reviewRating)
                 <div class="rounded-2xl border border-dashed border-line-strong bg-paper px-5 py-5 text-center md:py-8">
                   <p class="text-[26px] tracking-[0.15em] text-line-strong">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
                   <p class="mt-2 text-[15px] font-semibold text-heading">{{ $reviewRating ? 'No '.$reviewRating.'-star reviews yet' : 'No reviews yet' }}</p>
@@ -927,14 +937,6 @@
               if (n > 3) { alert('Please choose up to 3 photos.'); photoInput.value = ''; n = 0; }
               photoLabel.textContent = n ? n + ' photo' + (n === 1 ? '' : 's') + ' selected' : 'Add photos (optional, up to 3)';
             });
-
-            // Phones start with two reviews; the rest (and paging) on request.
-            var showAll = document.querySelector('[data-review-show-all]');
-            if (showAll) showAll.addEventListener('click', function () {
-              document.querySelectorAll('[data-review-extra]').forEach(function (el) { el.classList.remove('max-md:hidden'); });
-              showAll.remove();
-            });
-            if (/reviews_page=\d/.test(location.search) && showAll) showAll.click();
 
             // "Read more" only on reviews actually cut off by the 3-line clamp.
             document.querySelectorAll('[data-review-body]').forEach(function (body) {

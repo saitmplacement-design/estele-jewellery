@@ -10,6 +10,7 @@
       --tw-rotate-z: initial;
       --tw-skew-x: initial;
       --tw-skew-y: initial;
+      --tw-scroll-snap-strictness: proximity;
       --tw-space-y-reverse: 0;
       --tw-space-x-reverse: 0;
       --tw-divide-y-reverse: 0;
@@ -2909,6 +2910,10 @@
     width: 72px;
   }
 
+  .w-\[84\%\] {
+    width: 84%;
+  }
+
   .w-\[84px\] {
     width: 84px;
   }
@@ -3165,8 +3170,24 @@
     resize: both !important;
   }
 
+  .snap-x {
+    scroll-snap-type: x var(--tw-scroll-snap-strictness);
+  }
+
+  .snap-mandatory {
+    --tw-scroll-snap-strictness: mandatory;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
   .scroll-mt-20 {
     scroll-margin-top: calc(var(--spacing) * 20);
+  }
+
+  .scroll-px-4 {
+    scroll-padding-inline: calc(var(--spacing) * 4);
   }
 
   .list-disc {
@@ -5922,12 +5943,6 @@
     background-color: var(--color-paper);
   }
 
-  @media not all and (min-width: 768px) {
-    .max-md\:hidden {
-      display: none;
-    }
-  }
-
   @media (min-width: 640px) {
     .sm\:col-span-1 {
       grid-column: span 1 / span 1;
@@ -6104,6 +6119,10 @@
       grid-column: span 1 / span 1;
     }
 
+    .md\:col-span-2 {
+      grid-column: span 2 / span 2;
+    }
+
     .md\:col-span-3 {
       grid-column: span 3 / span 3;
     }
@@ -6134,6 +6153,10 @@
 
     .md\:mt-4 {
       margin-top: calc(var(--spacing) * 4);
+    }
+
+    .md\:mt-5 {
+      margin-top: calc(var(--spacing) * 5);
     }
 
     .md\:mt-7 {
@@ -6375,6 +6398,10 @@
 
     .md\:self-start {
       align-self: flex-start;
+    }
+
+    .md\:overflow-visible {
+      overflow: visible;
     }
 
     .md\:rounded-2xl {
@@ -7245,6 +7272,12 @@
 @property --tw-skew-y {
   syntax: "*";
   inherits: false
+}
+
+@property --tw-scroll-snap-strictness {
+  syntax: "*";
+  inherits: false;
+  initial-value: proximity;
 }
 
 @property --tw-space-y-reverse {
