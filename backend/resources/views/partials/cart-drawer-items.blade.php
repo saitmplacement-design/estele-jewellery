@@ -111,9 +111,6 @@
       <span class="font-bold text-[#454545]">Subtotal</span>
       <span class="font-bold text-black" data-cart-subtotal>₹{{ number_format($subtotal - ($discount ?? 0), 0) }}</span>
     </div>
-    <div class="flex flex-col gap-2">
-      <a class="btn-cta h-[49px]" href="{{ route('checkout.index') }}">Go To Checkout</a>
-      <a class="btn-cta-outline h-11 text-[14px]" href="{{ route('cart.index') }}">View Bag</a>
-    </div>
+    <a class="btn-cta h-[49px]" href="{{ route('checkout.index') }}">Go To Checkout</a>
   </div>
 @endif
