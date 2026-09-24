@@ -8,7 +8,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Sell Your Jewellery', 'url' => route('account.sell-jewellery.landing')], ['label' => 'My Requests']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
     <div class="mb-6 flex flex-wrap gap-3">
       <a class="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-[12px] font-medium uppercase tracking-[0.3px] text-heading transition-colors hover:border-accent hover:text-accent" href="{{ route('account.sell-jewellery.index') }}">
         My Requests

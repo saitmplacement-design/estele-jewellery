@@ -2,17 +2,31 @@
 
 @section('meta_title', 'Checkout | '.($siteSettings['site_name'] ?? 'Estele'))
 
+{{-- Phones: Place Order stays pinned to the bottom edge with the amount due
+     (the inline button sits below a long form), and the .buybar hides the tab
+     bar so nothing competes with it mid-checkout. It submits #checkout-form
+     through the form attribute, so it's the same request as the inline one. --}}
+@section('sticky_bar')
+  <div class="buybar md:hidden">
+    <div class="shrink-0 pl-1 leading-tight">
+      <span class="block text-[11px] uppercase tracking-[0.08em] text-muted">Total</span>
+      <span class="block text-[17px] font-bold text-heading">₹{{ number_format($subtotal - $discount + $shipping['fee'], 0) }}</span>
+    </div>
+    <button class="btn-cta h-[49px] flex-1 text-[17px]" type="submit" form="checkout-form">Place Order</button>
+  </div>
+@endsection
+
 @section('content')
 
   <nav class="mx-auto w-full max-w-wrapper px-3 md:px-4 flex flex-wrap items-center gap-1.5 py-2 text-[13px] text-muted border-b border-line" aria-label="Breadcrumb">
     <x-breadcrumb :items="[['label' => 'Cart', 'url' => route('cart.index')], ['label' => 'Checkout']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 md:px-4 pb-10 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 md:px-4 pb-10 pt-4 md:pt-6 md:pb-[60px]">
     <h1 class="mb-5 text-[18px] md:text-[26px]">Checkout</h1>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_340px] md:gap-[34px]">
-      <form action="{{ route('checkout.store') }}" method="post" class="[&_.field-set]:mb-7" data-loading-submit>
+      <form id="checkout-form" action="{{ route('checkout.store') }}" method="post" class="[&_.field-set]:mb-7" data-loading-submit>
         @csrf
 
         <fieldset class="field-set">

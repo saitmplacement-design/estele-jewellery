@@ -71,32 +71,44 @@
         px-3 md:px-4 inset as every block below as margin, plus rounded
         corners, so the banner sits as a card instead of running full-bleed.
       --}}
-      <style>@media (min-width: 768px) { .hero-banner-shortened { aspect-ratio: 1800 / 420 !important; } }</style>
-      <section class="hero-fade hero-banner-shortened skeleton relative overflow-hidden h-[50vh] md:h-auto md:mx-4 md:mt-4 md:rounded-2xl" aria-label="Featured collections" data-carousel data-autoplay="5000" data-fade>
+      {{-- Phones: the banner shows at its own aspect ratio, full width and
+           never cropped — the first slide sits in flow and sizes the box,
+           the rest stack over it (a fixed 50vh box used to leave the first
+           slide's landscape art floating in grey space and crop every other
+           slide's text). From md up the box has a fixed aspect ratio, so
+           every slide is absolutely positioned inside it. --}}
+      <style>
+        @media (min-width: 768px) {
+          .hero-banner-shortened { aspect-ratio: 1800 / 420 !important; }
+          .hero-banner-shortened > .hero-slide:first-child { position: absolute; }
+        }
+      </style>
+      <section class="hero-fade hero-banner-shortened skeleton relative min-h-[150px] overflow-hidden md:mx-4 md:mt-4 md:min-h-0 md:rounded-2xl" aria-label="Featured collections" data-carousel data-autoplay="5000" data-fade>
         @foreach($banners as $index => $banner)
           <div class="hero-slide {{ $index === 0 ? 'is-active' : '' }}" data-carousel-slide>
-            <a href="{{ $banner->link_url ?? '#' }}" aria-label="{{ $banner->title }}">
+            <a class="block h-full" href="{{ $banner->link_url ?? '#' }}" aria-label="{{ $banner->title }}">
               @if($banner->hasMedia('image') || $banner->hasMedia('mobile_image'))
                 @if($banner->hasMedia('image'))
                   <img class="hidden md:block h-full w-full object-cover" src="{{ $banner->getFirstMediaUrl('image', 'desktop') }}" alt="{{ $banner->image_alt_text ?: $banner->title }}" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" fetchpriority="{{ $index === 0 ? 'high' : 'auto' }}">
                 @endif
                 @if($banner->getMobileImageUrl())
-                  <img class="block md:hidden h-full w-full object-cover" src="{{ $banner->getMobileImageUrl() }}" alt="{{ $banner->image_alt_text ?: $banner->title }}" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" fetchpriority="{{ $index === 0 ? 'high' : 'auto' }}">
+                  <img class="block w-full md:hidden {{ $index === 0 ? 'h-auto' : 'h-full object-cover' }}" src="{{ $banner->getMobileImageUrl() }}" alt="{{ $banner->image_alt_text ?: $banner->title }}" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" fetchpriority="{{ $index === 0 ? 'high' : 'auto' }}">
                 @endif
               @endif
             </a>
           </div>
         @endforeach
-        {{-- Arrows visible on all breakpoints now (previously desktop-only via hidden md:grid) --}}
-        <button class="absolute left-3 top-1/2 z-[3] grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-heading shadow-sm backdrop-blur-sm transition-colors hover:bg-white md:left-5 md:h-10 md:w-10" type="button" data-hero-prev aria-label="Previous slide">
+        {{-- Arrows from md up; phones swipe (see the hero carousel in app.js),
+             where 24px arrows were below a usable tap size and sat on the art. --}}
+        <button class="absolute left-5 top-1/2 z-[3] hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-heading shadow-sm backdrop-blur-sm transition-colors hover:bg-white md:grid" type="button" data-hero-prev aria-label="Previous slide">
           <svg class="h-2.5 w-2.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <button class="absolute right-3 top-1/2 z-[3] grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-heading shadow-sm backdrop-blur-sm transition-colors hover:bg-white md:right-5 md:h-10 md:w-10" type="button" data-hero-next aria-label="Next slide">
+        <button class="absolute right-5 top-1/2 z-[3] hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-heading shadow-sm backdrop-blur-sm transition-colors hover:bg-white md:grid" type="button" data-hero-next aria-label="Next slide">
           <svg class="h-2.5 w-2.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
         </button>
         {{-- Dots sit over the slide's lower edge rather than in a white strip
              below it, so the banner keeps its full-bleed edge. --}}
-        <div class="absolute inset-x-0 bottom-4 z-[3] flex justify-center gap-2" data-hero-dots>
+        <div class="absolute inset-x-0 bottom-2.5 z-[3] flex justify-center gap-2 md:bottom-4" data-hero-dots>
           @foreach($banners as $index => $banner)
             <button class="h-1.5 rounded-full transition-all duration-300 {{ $index === 0 ? 'w-6 bg-white' : 'w-1.5 bg-white/55' }}" type="button" data-hero-dot="{{ $index }}" aria-label="Go to slide {{ $index + 1 }}"></button>
           @endforeach

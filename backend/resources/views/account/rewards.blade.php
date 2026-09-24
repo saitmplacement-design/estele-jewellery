@@ -9,7 +9,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Rewards & Wallet']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
     <h1 class="mb-6 text-[20px] uppercase tracking-[0.5px] md:text-[26px]">Rewards & Wallet</h1>
 
     @if(session('success'))

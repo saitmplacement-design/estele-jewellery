@@ -54,9 +54,10 @@ class OtpManager
     /**
      * Generates and sends a fresh code, invalidating any still-outstanding
      * code for the same number first (so only the most recently sent code
-     * ever verifies).
+     * ever verifies). Returns false when the gateway could not deliver it —
+     * that code is consumed immediately so it can never verify.
      */
-    public function issue(string $phone): void
+    public function issue(string $phone): bool
     {
         $code = (string) random_int(10 ** (self::CODE_LENGTH - 1), (10 ** self::CODE_LENGTH) - 1);
 
@@ -65,21 +66,32 @@ class OtpManager
             ->whereNull('consumed_at')
             ->update(['consumed_at' => now()]);
 
-        OtpCode::create([
+        $otp = OtpCode::create([
             'phone' => $phone,
             'channel' => 'sms',
             'code_hash' => Hash::make($code),
             'expires_at' => now()->addMinutes(self::EXPIRY_MINUTES),
         ]);
 
-        $this->gateway()->send($phone, $code);
+        if ($this->gateway()->send($phone, $code)) {
+            return true;
+        }
+
+        $otp->update(['consumed_at' => now()]);
+
+        return false;
+    }
+
+    public static function normalisePhone(string $phone): string
+    {
+        return substr(preg_replace('/\D/', '', $phone), -10);
     }
 
     /**
      * Email channel twin of issue() — same lifecycle, keyed by email address
      * instead of phone, delivered through the framework mail transport.
      */
-    public function issueEmail(string $email): void
+    public function issueEmail(string $email): bool
     {
         $email = $this->normalizeEmail($email);
 
@@ -90,14 +102,20 @@ class OtpManager
             ->whereNull('consumed_at')
             ->update(['consumed_at' => now()]);
 
-        OtpCode::create([
+        $otp = OtpCode::create([
             'email' => $email,
             'channel' => 'email',
             'code_hash' => Hash::make($code),
             'expires_at' => now()->addMinutes(self::EXPIRY_MINUTES),
         ]);
 
-        $this->mailGateway->send($email, $code);
+        if ($this->mailGateway->send($email, $code)) {
+            return true;
+        }
+
+        $otp->update(['consumed_at' => now()]);
+
+        return false;
     }
 
     /**
@@ -106,11 +124,6 @@ class OtpManager
      * either way — success marks it consumed immediately after verifying;
      * repeated failed attempts against the same code are capped instead of
      * consuming it outright, so a mistyped-but-correct-next-try code still works.
-     *
-     * Gateways that own verification remotely (see OtpVerifier — today Twilio
-     * Verify, which generates and checks the code itself, so a locally
-     * generated plaintext is never compared) are asked directly; every other
-     * gateway keeps the local code_hash check exactly as before.
      */
     public function verify(string $phone, string $code): bool
     {
@@ -121,25 +134,7 @@ class OtpManager
             ->latest('id')
             ->first();
 
-        if (! $otp || $otp->attempts >= self::MAX_ATTEMPTS) {
-            return false;
-        }
-
-        $otp->increment('attempts');
-
-        $gateway = $this->gateway();
-
-        $correct = $gateway instanceof OtpVerifier
-            ? $gateway->verify($phone, $code)
-            : Hash::check($code, $otp->code_hash);
-
-        if (! $correct) {
-            return false;
-        }
-
-        $otp->update(['consumed_at' => now()]);
-
-        return true;
+        return $this->check($otp, $code);
     }
 
     /**
@@ -148,15 +143,18 @@ class OtpManager
      */
     public function verifyEmail(string $email, string $code): bool
     {
-        $email = $this->normalizeEmail($email);
-
-        $otp = OtpCode::where('email', $email)
+        $otp = OtpCode::where('email', $this->normalizeEmail($email))
             ->where('channel', 'email')
             ->whereNull('consumed_at')
             ->where('expires_at', '>=', now())
             ->latest('id')
             ->first();
 
+        return $this->check($otp, $code);
+    }
+
+    private function check(?OtpCode $otp, string $code): bool
+    {
         if (! $otp || $otp->attempts >= self::MAX_ATTEMPTS) {
             return false;
         }

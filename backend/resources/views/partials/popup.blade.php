@@ -42,16 +42,33 @@
 
       var popupId = root.getAttribute('data-popup-id');
       var dismissKey = 'popup_dismissed_' + popupId;
-      if (sessionStorage.getItem(dismissKey)) return;
+      // Remembered for a week, not just the tab session: on phones every
+      // link opened from social/WhatsApp is a fresh session, so a
+      // sessionStorage flag re-showed the popup on almost every visit.
+      var SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+      function isDismissed() {
+        try {
+          if (sessionStorage.getItem(dismissKey)) return true;
+          var at = parseInt(localStorage.getItem(dismissKey), 10);
+          return at > 0 && Date.now() - at < SNOOZE_MS;
+        } catch (e) { return false; }
+      }
+      function remember() {
+        try {
+          sessionStorage.setItem(dismissKey, '1');
+          localStorage.setItem(dismissKey, String(Date.now()));
+        } catch (e) {}
+      }
+      if (isDismissed()) return;
 
       function show() {
-        if (sessionStorage.getItem(dismissKey)) return;
+        if (isDismissed()) return;
         root.hidden = false;
       }
 
       function dismiss() {
         root.hidden = true;
-        sessionStorage.setItem(dismissKey, '1');
+        remember();
       }
 
       root.querySelectorAll('[data-popup-close]').forEach(function (el) {
@@ -112,7 +129,7 @@
             var msg = root.querySelector('[data-popup-newsletter-msg]');
             if (msg) msg.hidden = false;
             form.hidden = true;
-            sessionStorage.setItem(dismissKey, '1');
+            remember();
           });
         });
       }

@@ -8,7 +8,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Addresses']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-[20px] uppercase tracking-[0.5px] md:text-[26px]">My Addresses</h1>
       <a class="text-[13px] font-medium text-heading underline hover:text-accent" href="{{ route('account.index') }}">&larr; Back to Account</a>

@@ -122,6 +122,11 @@ class Order extends Model
 
     protected static function booted(): void
     {
+        // Same reason as User::booted(): the submission's video must go with it.
+        static::deleting(function (Order $order) {
+            $order->rewardSubmission?->delete();
+        });
+
         static::updating(function (Order $order) {
             if (! $order->isDirty('status')) {
                 return;
@@ -163,11 +168,16 @@ class Order extends Model
             }
 
             if ($order->wasChanged('status') && $order->status === 'accepted' && filled($order->customer_phone)) {
-                app(\App\Services\WhatsApp\WhatsAppManager::class)->send(
-                    $order->customer_phone,
-                    "Your Estele order {$order->order_number} is packed and heading to shipping — you can track it from your account. Order total: ₹".number_format((float) $order->total, 2),
-                    ['order_id' => $order->id, 'order_number' => $order->order_number],
-                );
+                // A WhatsApp outage must never undo or block the status change
+                // the admin just made — report it and move on.
+                try {
+                    app(\App\Services\WhatsApp\WhatsAppGateway::class)->send(
+                        $order->customer_phone,
+                        "Your Estele order {$order->order_number} is packed and heading to shipping — you can track it from your account. Order total: ₹".number_format((float) $order->total, 2),
+                    );
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
         });
 

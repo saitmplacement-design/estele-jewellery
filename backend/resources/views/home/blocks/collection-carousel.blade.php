@@ -10,7 +10,7 @@
         <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 md:gap-5 lg:grid-cols-5 lg:gap-6 {{ $collections->count() > 8 ? 'explore-grid-4row' : '' }}" @if($collections->count() > 8) data-explore-grid @endif>
         @foreach($collections as $collection)
           <a class="cat-tile block" href="{{ route('collections.show', $collection) }}">
-            <span class="skeleton relative block aspect-[4/5] overflow-hidden rounded-lg">
+            <span class="skeleton relative block aspect-[2/3] overflow-hidden rounded-lg">
               @if($collection->hasMedia('image'))
                 <img class="cat-tile__img"
                      src="{{ $collection->getFirstMediaUrl('image', 'tile') }}"
