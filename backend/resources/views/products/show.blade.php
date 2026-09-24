@@ -690,6 +690,9 @@
               <p class="section-head__eyebrow">What customers say</p>
               <h2 class="text-[18px] font-bold leading-tight text-heading md:text-[26px]">Ratings &amp; Reviews</h2>
             </div>
+            @if($reviewTotal)
+              <button class="btn-cta-outline h-9 w-auto shrink-0 px-3.5 text-[12.5px] md:hidden" type="button" data-review-open>Write a review</button>
+            @endif
           </div>
 
           @if(session('review_success'))
@@ -704,7 +707,7 @@
                  reviews gets a single compact prompt instead of 0.0 and empty bars. --}}
             @if($reviewTotal)
             <div class="md:sticky md:top-28 md:self-start">
-              <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-3.5 md:p-5">
+              <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-3 md:p-5">
                 <div class="grid grid-cols-[auto_1fr] items-center gap-4 md:block">
                 <div class="flex flex-col items-center gap-1 md:flex-row md:gap-4">
                   <div class="text-center">
@@ -745,7 +748,7 @@
                 </ul>
                 </div>
 
-                <button class="btn-cta mt-3 h-10 w-full text-[13.5px] md:mt-4 md:h-11 md:text-[14px]" type="button" data-review-open>
+                <button class="btn-cta mt-4 hidden h-11 w-full text-[14px] md:inline-flex" type="button" data-review-open>
                   <svg class="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
                   Write a review
                 </button>
@@ -761,7 +764,10 @@
 
             <div class="min-w-0">
               {{-- Write-a-review panel --}}
-              <div class="mb-5 rounded-2xl border border-line bg-paper p-4 md:p-5 {{ $reviewFormOpen ? '' : 'hidden' }}" data-review-form-panel>
+              {{-- Phones: the form opens as a bottom sheet over the page, so the
+                   reviews section itself never grows. md+: an inline panel. --}}
+              <div class="fixed inset-0 z-[205] bg-black/45 md:hidden {{ $reviewFormOpen ? '' : 'hidden' }}" data-review-backdrop></div>
+              <div class="mb-5 rounded-2xl border border-line bg-paper p-4 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-[210] max-md:mb-0 max-md:max-h-[88vh] max-md:overflow-y-auto max-md:rounded-b-none max-md:pb-[calc(16px+env(safe-area-inset-bottom))] md:p-5 {{ $reviewFormOpen ? '' : 'hidden' }}" data-review-form-panel>
                 <div class="mb-3 flex items-center justify-between">
                   <h3 class="text-[16px] font-bold text-heading">Write a review</h3>
                   <button class="grid h-8 w-8 place-items-center rounded-full text-heading hover:bg-white" type="button" data-review-close aria-label="Close">
@@ -875,7 +881,7 @@
                       @if($review->title)
                         <p class="mt-2 text-[13.5px] font-semibold text-heading md:mt-3 md:text-[14px]">{{ $review->title }}</p>
                       @endif
-                      <p class="mt-1 line-clamp-3 text-[13px] leading-[1.6] text-[#4a4a4a] md:mt-1.5 md:line-clamp-none md:text-[13.5px]" data-review-body>{{ $review->body }}</p>
+                      <p class="mt-1 line-clamp-2 text-[13px] leading-[1.55] text-[#4a4a4a] md:mt-1.5 md:line-clamp-none md:text-[13.5px]" data-review-body>{{ $review->body }}</p>
                       <button class="mt-1 hidden text-[12px] font-semibold text-accent-dark" type="button" data-review-more>Read more</button>
                       @if($review->hasMedia('photos'))
                         <div class="mt-2 flex flex-wrap gap-2 md:mt-3">
@@ -913,16 +919,22 @@
           (function () {
             var panel = document.querySelector('[data-review-form-panel]');
             if (!panel) return;
+            var backdrop = document.querySelector('[data-review-backdrop]');
+            var isPhone = function () { return window.matchMedia('(max-width: 767px)').matches; };
+            function closePanel() { panel.classList.add('hidden'); if (backdrop) backdrop.classList.add('hidden'); }
+            if (backdrop) backdrop.addEventListener('click', closePanel);
             document.querySelectorAll('[data-review-open]').forEach(function (btn) {
-              btn.addEventListener('click', function () {
+              btn.addEventListener('click', function (e) {
+                e.preventDefault();
                 panel.classList.remove('hidden');
+                if (isPhone()) { if (backdrop) backdrop.classList.remove('hidden'); return; }
                 panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 var first = panel.querySelector('.star-input label');
                 if (first) setTimeout(function () { first.focus && first.focus(); }, 300);
               });
             });
             var close = panel.querySelector('[data-review-close]');
-            if (close) close.addEventListener('click', function () { panel.classList.add('hidden'); });
+            if (close) close.addEventListener('click', closePanel);
 
             var words = @json($ratingWords);
             var wordEl = panel.querySelector('[data-star-word]');
@@ -944,7 +956,7 @@
               if (!more || !more.hasAttribute('data-review-more')) return;
               if (body.scrollHeight > body.clientHeight + 2) more.classList.remove('hidden');
               more.addEventListener('click', function () {
-                var open = body.classList.toggle('line-clamp-3');
+                var open = body.classList.toggle('line-clamp-2');
                 more.textContent = open ? 'Read more' : 'Show less';
               });
             });
