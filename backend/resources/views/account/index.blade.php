@@ -25,7 +25,7 @@
     <x-breadcrumb :items="[['label' => 'My Account']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
 
     @if(session('success'))
       <p class="mb-5 rounded-lg border border-line bg-pinksoft px-4 py-3 text-[13px] text-heading">{{ session('success') }}</p>
@@ -41,7 +41,7 @@
         </span>
 
         <div class="min-w-0 flex-1">
-          <h1 class="truncate text-[20px] font-bold uppercase tracking-[0.5px] text-heading md:text-[24px]">{{ auth()->user()->name }}</h1>
+          <h1 class="line-clamp-2 break-words text-[18px] font-bold uppercase leading-tight tracking-[0.5px] text-heading sm:text-[20px] md:text-[24px]">{{ auth()->user()->name }}</h1>
           @if(auth()->user()->phone)
             <p class="mt-1 flex items-center gap-1.5 truncate text-[13px] text-muted">
               <svg class="h-3.5 w-3.5 shrink-0 text-accent-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z"/></svg>
@@ -50,9 +50,15 @@
           @else
             <p class="mt-1 truncate text-[13px] text-muted">{{ auth()->user()->email }}</p>
           @endif
+          {{-- Phones: the badge sits under the contact line, so the name gets
+               the full row instead of being truncated to a few letters. --}}
+          <span class="pill pill-brand mt-2 sm:hidden">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l4.5 3L12 4l4.5 6L21 7l-2 11H5z"/></svg>
+            Premium Member
+          </span>
         </div>
 
-        <span class="pill pill-brand shrink-0">
+        <span class="pill pill-brand hidden shrink-0 sm:inline-flex">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l4.5 3L12 4l4.5 6L21 7l-2 11H5z"/></svg>
           Premium Member
         </span>

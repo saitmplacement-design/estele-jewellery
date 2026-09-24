@@ -335,14 +335,16 @@
 
 {{-- ============================================================
      FLOATING CART BUBBLE — bottom-right, visible only when cart
-     has items. Tapping opens the cart drawer.
+     has items. Tapping opens the cart drawer. Desktop only: on a phone
+     the header bag icon already shows the live count, and the bottom
+     edge belongs to the tab bar and the pages' sticky action bars.
      ============================================================ --}}
 <a href="/cart"
    id="floating-cart-btn"
    data-cart-open
    aria-label="View cart"
    hidden
-   class="fixed bottom-[80px] right-3 z-[120] flex h-[54px] w-[54px] items-center justify-center rounded-full bg-heading text-white shadow-xl transition-all duration-300 hover:bg-accent md:bottom-[22px] md:right-[22px] md:h-[58px] md:w-[58px]"
+   class="fixed bottom-[22px] right-[22px] z-[120] hidden h-[58px] w-[58px] items-center justify-center rounded-full bg-heading text-white shadow-xl transition-all duration-300 hover:bg-accent md:flex"
    style="transform:scale(0);opacity:0;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s,background .2s;">
   <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
     <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
@@ -406,9 +408,25 @@
   .chat-full-panel.is-open {
     transform: translateY(-50%) translateX(0);
   }
-  /* Mobile: slide up from bottom */
+  /* Mobile: a compact round bubble just above the tab bar (a vertical tab
+     on the right edge covered product tiles and carousel arrows), and the
+     panel slides up from the bottom. */
   @media (max-width: 767px) {
-    .chat-tab-pill { top: auto; bottom: 148px; transform: none; }
+    .chat-tab-pill {
+      top: auto; right: 12px; bottom: calc(68px + env(safe-area-inset-bottom)); transform: none;
+      width: 48px; height: 48px; padding: 0; justify-content: center; border-radius: 9999px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
+    .chat-tab-pill img { width: 30px; height: 30px; }
+    .chat-tab-pill .tab-label { display: none; }
+    .chat-tab-pill .online-dot { position: absolute; right: 3px; bottom: 3px; width: 11px; height: 11px; border: 2px solid #1f1f1f; }
+    /* Pages that pin their own action bar (product, cart, listings) hide the
+       tab bar; lift the bubble clear of the taller product/cart bar. */
+    body:has(.buybar) .chat-tab-pill { bottom: calc(79px + env(safe-area-inset-bottom)); }
+    body:has(.listing-bar) .chat-tab-pill { bottom: calc(64px + env(safe-area-inset-bottom)); }
+    /* Bag, checkout and payment: the bubble floated over order totals and
+       the confirmation buttons, and the page's own CTA is what matters. */
+    .chat-tab-pill--checkout { display: none; }
     .chat-full-panel {
       top: auto; bottom: 0;
       transform: translateX(0) translateY(110%);
@@ -421,7 +439,7 @@
 </style>
 
 {{-- Vertical tab trigger --}}
-<button class="chat-tab-pill" type="button" id="chat-tab-btn"
+<button class="chat-tab-pill {{ request()->routeIs('cart.*', 'checkout.*', 'payment.*') ? 'chat-tab-pill--checkout' : '' }}" type="button" id="chat-tab-btn"
         aria-label="Open support chat" aria-expanded="false" aria-controls="chat-full-panel">
   <img src="{{ asset('assets/images/chat-avatar.svg') }}" alt="" width="26" height="26">
   <span class="online-dot"></span>
@@ -463,16 +481,25 @@
   </form>
 </div>
 
+{{-- Page-specific bar pinned to the bottom edge on phones: the product
+     page's Add to Bag / Buy Now, the cart's Go To Checkout and the listing
+     pages' Sort / Filter. On product pages this is the ONLY add-to-bag
+     control below md, so it must always be rendered. --}}
+@yield('sticky_bar')
+
 {{--
-  Back-to-top: above the floating cart bubble.
-  Mobile: cart at bottom-80px → clear at ~148px.
-  Desktop: cart at bottom-22px (58px tall) → clear at ~92px.
+  Back-to-top sits above the chat bubble.
+  Mobile: chat bubble at 68px (48px tall) → clear at 128px; pages with a
+  .buybar lift both (see app.css).
+  Desktop: floating cart at bottom-22px (58px tall) → clear at 92px.
+  pointer-events-none until it fades in (app.js), so the invisible button
+  never swallows taps meant for whatever is underneath it.
 --}}
 <style>
-  .back-to-top-btn { bottom: 148px !important; right: 12px !important; }
-  @media (min-width: 768px) { .back-to-top-btn { bottom: 92px !important; right: 22px !important; } }
+  .back-to-top-btn { bottom: calc(128px + env(safe-area-inset-bottom)); right: 12px; }
+  @media (min-width: 768px) { .back-to-top-btn { bottom: 92px; right: 22px; } }
 </style>
-<button class="back-to-top-btn fixed z-[90] grid h-[42px] w-[42px] translate-y-2.5 place-items-center rounded-full bg-heading text-white opacity-0 transition-all hover:bg-accent"
+<button class="back-to-top-btn pointer-events-none fixed z-[90] grid h-[42px] w-[42px] translate-y-2.5 place-items-center rounded-full bg-heading text-white opacity-0 transition-all hover:bg-accent"
         type="button" data-to-top aria-label="Back to top">
   <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>

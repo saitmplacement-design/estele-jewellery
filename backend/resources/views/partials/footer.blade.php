@@ -39,9 +39,13 @@
   </div>
 
   <div class="mx-auto w-full max-w-wrapper px-4 pb-5 pt-5 md:px-8 md:pt-6">
-    <div class="grid grid-cols-2 gap-x-6 gap-y-4 border-b border-white/10 pb-4 md:grid-cols-4 lg:grid-cols-12">
+    {{-- Link groups are <details> accordions on phones (one long column of
+         ~30 links otherwise) and plain always-open columns from md up —
+         app.js keeps them open there and closes them on phones. Rendered
+         open so the links are all reachable without JavaScript. --}}
+    <div class="grid grid-cols-2 gap-x-6 border-b border-white/10 pb-4 md:grid-cols-4 md:gap-y-4 lg:grid-cols-12">
 
-      <div class="col-span-2 md:col-span-4 lg:col-span-4">
+      <div class="col-span-2 mb-3 md:col-span-4 md:mb-0 lg:col-span-4">
         <p class="wordmark text-[22px] text-white">{{ $siteSettings['site_name'] ?? 'Estele' }}</p>
         <p class="mt-1 text-[10.5px] uppercase tracking-[0.22em] text-gold">Trusted since 1989</p>
         <p class="mt-4 max-w-[46ch] text-[13px] leading-relaxed text-white/70">{{ $footerAbout }}</p>
@@ -65,27 +69,36 @@
         </div>
       </div>
 
-      <div class="lg:col-span-2">
-        <h3 class="mb-3.5 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Shop by Category</h3>
-        <ul class="space-y-2 text-[13px] text-white/75">
+      <details class="footer-acc group/acc col-span-2 md:col-span-1 lg:col-span-2 border-b border-white/10 md:border-0" data-footer-acc open>
+        <summary class="flex cursor-pointer list-none items-center justify-between py-3.5 md:pointer-events-none md:mb-3.5 md:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Shop by Category</h3>
+          <svg class="h-4 w-4 text-gold transition-transform duration-200 group-open/acc:rotate-45 md:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-[13px] text-white/75 md:space-y-2 md:pb-0">
           @foreach($navCategories as $category)
             <li><a class="transition-colors hover:text-gold" href="{{ route('categories.show', $category['slug']) }}">{{ $category['name'] }}</a></li>
           @endforeach
         </ul>
-      </div>
+      </details>
 
-      <div class="lg:col-span-2">
-        <h3 class="mb-3.5 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Collections</h3>
-        <ul class="space-y-2 text-[13px] text-white/75">
+      <details class="footer-acc group/acc col-span-2 md:col-span-1 lg:col-span-2 border-b border-white/10 md:border-0" data-footer-acc open>
+        <summary class="flex cursor-pointer list-none items-center justify-between py-3.5 md:pointer-events-none md:mb-3.5 md:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Collections</h3>
+          <svg class="h-4 w-4 text-gold transition-transform duration-200 group-open/acc:rotate-45 md:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-[13px] text-white/75 md:space-y-2 md:pb-0">
           @foreach($navCollections as $collection)
             <li><a class="transition-colors hover:text-gold" href="{{ route('collections.show', $collection['slug']) }}">{{ $collection['name'] }}</a></li>
           @endforeach
         </ul>
-      </div>
+      </details>
 
-      <div class="col-span-2 md:col-span-1 lg:col-span-2">
-        <h3 class="mb-3.5 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Customer Care</h3>
-        <ul class="space-y-2 text-[13px] text-white/75">
+      <details class="footer-acc group/acc col-span-2 md:col-span-1 lg:col-span-2 border-b border-white/10 md:border-0" data-footer-acc open>
+        <summary class="flex cursor-pointer list-none items-center justify-between py-3.5 md:pointer-events-none md:mb-3.5 md:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Customer Care</h3>
+          <svg class="h-4 w-4 text-gold transition-transform duration-200 group-open/acc:rotate-45 md:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-[13px] text-white/75 md:space-y-2 md:pb-0">
           <li><a class="transition-colors hover:text-gold" href="{{ auth()->check() ? route('account.index') : route('login') }}">Track Order</a></li>
           <li><a class="transition-colors hover:text-gold" href="{{ route('wishlist') }}">My Wishlist</a></li>
           <li><a class="transition-colors hover:text-gold" href="{{ route('cart.index') }}">Shopping Bag</a></li>
@@ -95,22 +108,25 @@
           <li><a class="transition-colors hover:text-gold" href="{{ route('blogs.index') }}">Journal</a></li>
           <li><a class="transition-colors hover:text-gold" href="{{ route('pages.show', 'privacy-policy') }}">Privacy Policy</a></li>
         </ul>
-      </div>
+      </details>
 
-      <div class="col-span-2 md:col-span-4 lg:col-span-2">
-        <h3 class="mb-3.5 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Get in Touch</h3>
-        <div class="space-y-1.5 text-[12.5px] text-white/75">
+      <details class="footer-acc group/acc col-span-2 md:col-span-4 lg:col-span-2 border-b border-white/10 md:border-0" data-footer-acc open>
+        <summary class="flex cursor-pointer list-none items-center justify-between py-3.5 md:pointer-events-none md:mb-3.5 md:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">Get in Touch</h3>
+          <svg class="h-4 w-4 text-gold transition-transform duration-200 group-open/acc:rotate-45 md:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </summary>
+        <div class="space-y-1.5 pb-4 text-[12.5px] text-white/75 md:pb-0">
           <p class="font-semibold text-white">{{ $footerCompany }}</p>
           <p class="leading-normal">{{ $footerAddress }}</p>
           <p><a class="hover:text-gold" href="tel:{{ preg_replace('/\s+/', '', $siteSettings['contact_phone'] ?? '+918247476318') }}">{{ $siteSettings['contact_phone'] ?? '+91 82474 76318' }}</a></p>
           <p><a class="hover:text-gold" href="mailto:{{ $siteSettings['contact_email'] ?? 'info@estele.co' }}">{{ $siteSettings['contact_email'] ?? 'info@estele.co' }}</a></p>
           <p class="text-white/55">{{ $footerHours }}</p>
         </div>
-      </div>
+      </details>
     </div>
 
-    <div class="flex flex-wrap items-center gap-x-2 gap-y-2 py-3 text-[11.5px]">
-      <span class="mr-1 font-semibold uppercase tracking-[0.14em] text-white/55">Popular searches</span>
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-2 py-4 text-[11.5px]">
+      <span class="mr-1 w-full font-semibold uppercase tracking-[0.14em] text-white/55 md:w-auto">Popular searches</span>
       @foreach($popularSearches as $term)
         <a class="rounded-full border border-white/15 px-3 py-1 text-white/75 transition-colors hover:border-gold hover:text-gold" href="{{ route('search', ['q' => $term]) }}">{{ $term }}</a>
       @endforeach

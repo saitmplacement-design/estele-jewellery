@@ -20,7 +20,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Order #'.$order->order_number]]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-[20px] uppercase tracking-[0.5px] md:text-[26px]">Order #{{ $order->order_number }}</h1>

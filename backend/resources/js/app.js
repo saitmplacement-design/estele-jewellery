@@ -312,6 +312,27 @@ import '../css/app.css';
     if (next) next.addEventListener('click', function () { show(i + 1); });
     dots.forEach(function (d, idx) { d.addEventListener('click', function () { show(idx); }); });
 
+    /* Swipe on touch screens (the arrows are md+ only). A mostly-horizontal
+       drag past 40px changes slide; the click that follows a swipe is
+       swallowed so it doesn't also open the banner's link. */
+    var sx = 0, sy = 0, swiped = false;
+    root.addEventListener('touchstart', function (e) {
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+      swiped = false;
+    }, { passive: true });
+    root.addEventListener('touchend', function (e) {
+      var dx = e.changedTouches[0].clientX - sx;
+      var dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        swiped = true;
+        show(dx < 0 ? i + 1 : i - 1);
+      }
+    }, { passive: true });
+    root.addEventListener('click', function (e) {
+      if (swiped) { e.preventDefault(); swiped = false; }
+    }, true);
+
     var delay = parseInt(root.getAttribute('data-autoplay'), 10);
     if (delay > 0) {
       /* Wrapped in its own IIFE deliberately, not just an `if` block: this
@@ -912,6 +933,21 @@ import '../css/app.css';
         });
       }
     }
+  })();
+
+  /* ------------------------------------------------------------------------
+     FOOTER ACCORDIONS — link groups collapse on phones, stay open as plain
+     columns from md up. Rendered open server-side so they work without JS.
+     ---------------------------------------------------------------------- */
+  (function () {
+    var groups = $$('[data-footer-acc]');
+    if (!groups.length || !window.matchMedia) return;
+    var desktop = window.matchMedia('(min-width: 768px)');
+    function sync() {
+      groups.forEach(function (d) { d.open = desktop.matches; });
+    }
+    sync();
+    if (desktop.addEventListener) desktop.addEventListener('change', sync);
   })();
 
   /* ------------------------------------------------------------------------
@@ -2130,6 +2166,12 @@ import '../css/app.css';
 
     btn.disabled = true;
     btn.setAttribute('aria-busy', 'true');
+
+    // A form can have more than one submit button (checkout's inline Place
+    // Order plus the sticky phone bar, which points at it via form="…"),
+    // so lock all of them, not only the one that was pressed.
+    $$('button[type="submit"]', form).concat(form.id ? $$('button[type="submit"][form="' + form.id + '"]') : [])
+      .forEach(function (other) { if (other !== btn) other.disabled = true; });
 
     if (form.hasAttribute('data-loading-submit')) {
       btn.dataset.originalLabel = btn.innerHTML;

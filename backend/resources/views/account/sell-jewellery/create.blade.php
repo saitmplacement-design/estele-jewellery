@@ -8,7 +8,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Sell Your Jewellery', 'url' => route('account.sell-jewellery.landing')], ['label' => 'New Request']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-2xl px-3 pb-10 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-2xl px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
 
     {{-- Hero. The script accent ("Showcase Your Shine") is the one place this
          flow uses the brand's script face — it sits opposite the heading and

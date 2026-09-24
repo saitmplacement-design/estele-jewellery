@@ -648,6 +648,14 @@
           }
         }
 
+        /* Odd card out on the 2-column phone grid spans the row instead of
+           sitting alone in a half-width cell. */
+        @media (max-width: 639px) {
+          .promise-grid > :last-child:nth-child(odd) {
+            grid-column: 1 / -1;
+          }
+        }
+
         .promise-card-icon {
           margin: 0 auto 10px;
           color: var(--color-accent);

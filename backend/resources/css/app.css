@@ -283,13 +283,12 @@
      (plus the spacer the layout reserves for it) stands down on those pages. */
   body:has(.buybar) .bottom-nav { display: none; }
   body:has(.buybar) .bottom-nav-spacer { display: none; }
-  /* The floating chat bubble and back-to-top are pinned at 74px/134px, which
-     clears the 56px tab bar but not a .buybar — that is 67px tall before the
-     home-indicator inset and ~101px with it, so on a notched phone the bubble
-     sat on top of the primary checkout CTA. Lift both above the bar instead. */
+  /* The chat bubble (see layouts/app) and back-to-top clear the 56px tab bar
+     but not a .buybar — that is 67px tall before the home-indicator inset, so
+     on a notched phone they sat on top of the primary checkout CTA. Lift
+     back-to-top above the bar and the bubble; the bubble lifts itself. */
   @media (max-width: 767px) {
-    body:has(.buybar) [data-chat] { bottom: calc(79px + env(safe-area-inset-bottom)); }
-    body:has(.buybar) .back-to-top-btn { bottom: calc(139px + env(safe-area-inset-bottom)) !important; }
+    body:has(.buybar) .back-to-top-btn { bottom: calc(139px + env(safe-area-inset-bottom)); }
   }
   /* Listing pages (category, collection, search) pin a Sort/Filter bar to the
      same edge via @section('sticky_bar'). It arbitrates identically: the bar
@@ -464,8 +463,10 @@
   }
   .loop__img { @apply h-full w-full object-cover; pointer-events: none; }
   .loop__label { @apply text-center text-[11.5px] font-bold leading-tight text-heading md:text-[15px]; }
+  /* Arrows from md up only — phones swipe the loop (touch handler in app.js),
+     and a 24px arrow sat on top of the first and last circles. */
   .loop-arrow {
-    @apply absolute z-[3] grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full border border-line bg-white/95 text-heading shadow-sm transition-colors active:bg-pinksoft md:h-9 md:w-9 md:hover:border-accent-dark md:hover:text-accent-dark;
+    @apply absolute z-[3] hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-line bg-white/95 text-heading shadow-sm transition-colors active:bg-pinksoft md:grid md:hover:border-accent-dark md:hover:text-accent-dark;
     top: calc(4px + var(--loop-arrow-y, 40px));
   }
 
