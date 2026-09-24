@@ -412,7 +412,7 @@
               <span class="font-medium text-accent-dark underline-offset-2 hover:underline">{{ number_format($ratingCount) }} {{ \Illuminate\Support\Str::plural('review', $ratingCount) }}</span>
             </a>
           @else
-            <a class="mb-3 inline-flex items-center gap-2 text-[13px]" href="#write-review" data-review-open>
+            <a class="mb-3 inline-flex items-center gap-2 text-[13px]" href="#reviews" data-review-open>
               <x-review-stars :rating="0" size="text-[15px]" />
               <span class="font-medium text-accent-dark underline underline-offset-2">Be the first to review</span>
             </a>
@@ -706,7 +706,16 @@
             {{-- Summary — only once customers have reviewed; a product with no
                  reviews gets a single compact prompt instead of 0.0 and empty bars. --}}
             @if($reviewTotal)
-            <div class="md:sticky md:top-28 md:self-start">
+            {{-- Phones: one compact rating line; the full summary card is md+ only. --}}
+            {{-- Phones: one compact rating line that opens/closes the full
+                 breakdown below it; md+ always shows the summary card. --}}
+            <button class="-mt-1 flex w-full items-center gap-2 text-left text-[12.5px] text-muted md:hidden" type="button" data-review-summary-toggle aria-expanded="false">
+              <span class="inline-flex items-center gap-0.5 rounded bg-[#1f9d55] px-1.5 py-0.5 text-[12px] font-bold leading-none text-white">{{ number_format($ratingAverage, 1) }}&#9733;</span>
+              <x-review-stars :rating="$ratingAverage" size="text-[14px]" />
+              {{ number_format($reviewTotal) }} {{ \Illuminate\Support\Str::plural('review', $reviewTotal) }}
+              <svg class="ml-auto h-4 w-4 shrink-0 text-heading transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-review-summary-chevron><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="{{ $reviewRating ? '' : 'hidden' }} md:sticky md:top-28 md:block md:self-start" data-review-summary>
               <div class="rounded-2xl border border-line bg-gradient-to-br from-pinksoft to-white p-3 md:p-5">
                 <div class="grid grid-cols-[auto_1fr] items-center gap-4 md:block">
                 <div class="flex flex-col items-center gap-1 md:flex-row md:gap-4">
@@ -950,6 +959,20 @@
               photoLabel.textContent = n ? n + ' photo' + (n === 1 ? '' : 's') + ' selected' : 'Add photos (optional, up to 3)';
             });
 
+            // Phones: the rating line opens/closes the breakdown card.
+            var sumToggle = document.querySelector('[data-review-summary-toggle]');
+            var summary = document.querySelector('[data-review-summary]');
+            if (sumToggle && summary) {
+              var chevron = sumToggle.querySelector('[data-review-summary-chevron]');
+              var sync = function () {
+                var open = !summary.classList.contains('hidden');
+                sumToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (chevron) chevron.classList.toggle('rotate-180', open);
+              };
+              sumToggle.addEventListener('click', function () { summary.classList.toggle('hidden'); sync(); });
+              sync();
+            }
+
             // "Read more" only on reviews actually cut off by the 3-line clamp.
             document.querySelectorAll('[data-review-body]').forEach(function (body) {
               var more = body.nextElementSibling;
@@ -961,7 +984,6 @@
               });
             });
 
-            if (location.hash === '#write-review') document.querySelector('[data-review-open]').click();
           })();
         </script>
       @endpush

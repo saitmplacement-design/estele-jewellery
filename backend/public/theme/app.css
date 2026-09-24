@@ -2735,6 +2735,10 @@
     margin-inline: auto;
   }
 
+  .-mt-1 {
+    margin-top: calc(var(--spacing) * -1);
+  }
+
   .-mt-2 {
     margin-top: calc(var(--spacing) * -2);
   }
@@ -3575,6 +3579,10 @@
 
   .rotate-90 {
     rotate: 90deg;
+  }
+
+  .rotate-180 {
+    rotate: 180deg;
   }
 
   .transform {
