@@ -485,6 +485,9 @@
   .explore-grid-4row.is-expanded > * { display: revert !important; }
 
   /* ---- Section heading: serif title with a short gold rule under it ---- */
+  /* Taps on controls fire immediately: no double-tap-to-zoom wait. */
+  a, button, input, select, label, summary, [role="button"] { touch-action: manipulation; }
+
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
 
@@ -493,7 +496,7 @@
     @apply font-sans text-[18px] font-normal uppercase leading-tight tracking-[0.02em] text-accent-dark md:text-[26px] lg:text-[30px] xl:text-[34px];
   }
   .section-head--strip {
-    @apply -mx-3 mb-4 flex min-h-[53px] flex-col items-center justify-center px-3 py-3 md:mx-0 md:mb-9 md:bg-none md:px-0 md:py-0;
+    @apply -mx-3 mb-3 flex min-h-[48px] flex-col items-center justify-center px-3 py-2.5 md:mx-0 md:mb-9 md:bg-none md:px-0 md:py-0;
     background-image: linear-gradient(100deg, #EDEDED 0%, #FFFFFF 22%, #FFFFFF 78%, #EDEDED 100%);
   }
   .section-head__title--plain {

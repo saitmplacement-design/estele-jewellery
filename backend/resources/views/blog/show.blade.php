@@ -57,7 +57,7 @@
   </div>
 
   @if($relatedPosts->isNotEmpty())
-    <div class="mx-auto w-full max-w-wrapper px-3 pb-10 md:px-4">
+    <div class="mx-auto w-full max-w-wrapper px-3 pb-6 md:px-4">
       <h2 class="mb-5 text-center text-[16px] uppercase tracking-[0.4px]">You may also like</h2>
       <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         @foreach($relatedPosts as $post)

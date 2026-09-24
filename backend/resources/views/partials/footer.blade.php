@@ -23,7 +23,7 @@
 
 <footer class="bg-deepwine text-white/90">
   <div class="border-b border-white/10 bg-black/15">
-    <div class="mx-auto grid w-full max-w-wrapper grid-cols-2 gap-x-4 gap-y-5 px-4 py-6 md:grid-cols-4 md:px-8">
+    <div class="mx-auto grid w-full max-w-wrapper grid-cols-2 gap-x-4 gap-y-4 px-4 py-4 md:grid-cols-4 md:px-8 md:py-6">
       @foreach($footerUsps as $usp)
         <div class="flex items-center gap-3">
           <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-gold/50 text-gold">
@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="mx-auto w-full max-w-wrapper px-4 pb-5 pt-5 md:px-8 md:pt-6">
+  <div class="mx-auto w-full max-w-wrapper px-4 pb-4 pt-4 md:px-8 md:pb-5 md:pt-6">
     {{-- Link groups are <details> accordions on phones (one long column of
          ~30 links otherwise) and plain always-open columns from md up —
          app.js keeps them open there and closes them on phones. Rendered

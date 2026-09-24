@@ -22,7 +22,7 @@
     <x-breadcrumb :items="[['label' => 'Cart', 'url' => route('cart.index')], ['label' => 'Checkout']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 md:px-4 pb-10 pt-4 md:pt-6 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 md:px-4 pb-6 pt-4 md:pt-6 md:pb-[60px]">
     <h1 class="mb-5 text-[18px] md:text-[26px]">Checkout</h1>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_340px] md:gap-[34px]">

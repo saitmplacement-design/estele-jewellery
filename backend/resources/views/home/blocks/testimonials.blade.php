@@ -1,6 +1,6 @@
 @props(['block'])
 
-<section class="bg-pinksoft py-6 md:py-9">
+<section class="bg-pinksoft py-4 md:py-9">
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
     @if($block->title)
       <x-section-header :title="$block->title" :subtitle="$block->subtitle" />

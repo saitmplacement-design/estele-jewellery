@@ -4,7 +4,7 @@
   {{-- The one dark section on the page. Portraits of the pieces being worn
        carry more weight against a jeweller's-case ground than against ivory,
        so the palette inverts here and nowhere else. --}}
-  <section class="bg-deepwine py-8 md:py-11">
+  <section class="bg-deepwine py-5 md:py-11">
     <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
       <div class="mb-5 text-center md:mb-7">
         <h2 class="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">

@@ -11,7 +11,7 @@
   ];
 @endphp
 
-<section class="bg-white py-6 md:border-y md:border-line md:py-9">
+<section class="bg-white py-4 md:border-y md:border-line md:py-9">
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
     @if($block->title || $block->subtitle)
       <div>

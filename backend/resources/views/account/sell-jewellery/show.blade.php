@@ -50,7 +50,7 @@
     <x-breadcrumb :items="[['label' => 'My Account', 'url' => route('account.index')], ['label' => 'Sell Your Jewellery', 'url' => route('account.sell-jewellery.landing')], ['label' => 'My Requests', 'url' => route('account.sell-jewellery.index')], ['label' => 'Request']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-2xl px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]" data-poll-status data-should-poll="{{ $isPolling ? '1' : '0' }}" data-status-url="{{ route('account.sell-jewellery.status', $oldJewelleryRequest) }}">
+  <div class="mx-auto w-full max-w-2xl px-3 pb-6 pt-4 md:pt-6 md:px-4 md:pb-[60px]" data-poll-status data-should-poll="{{ $isPolling ? '1' : '0' }}" data-status-url="{{ route('account.sell-jewellery.status', $oldJewelleryRequest) }}">
     <h1 class="mb-4 text-[18px] uppercase tracking-[0.4px] text-heading">{{ $oldJewelleryRequest->request_number }}</h1>
 
     <div class="rounded-xl border {{ $statusPanel['tone'] }} p-5 md:p-6">

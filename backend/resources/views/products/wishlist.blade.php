@@ -5,7 +5,7 @@
 
 @section('content')
 
-<section class="bg-white pb-10 md:bg-ivory md:py-14">
+<section class="bg-white pb-6 md:bg-ivory md:py-14">
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
     <x-section-header title="Saved Items" subtitle="Pieces you kept aside. They stay here on this device until you remove them." />
 
@@ -17,7 +17,7 @@
       @endforeach
     </div>
 
-    <div class="mx-auto max-w-[46ch] py-16 text-center" data-wishlist-empty hidden>
+    <div class="mx-auto max-w-[46ch] py-4 text-center" data-wishlist-empty hidden>
       <p class="text-[18px] font-bold text-heading">Nothing saved yet</p>
       <p class="mt-2.5 text-[13.5px] leading-relaxed text-muted">Tap the heart on any piece to keep it here while you decide.</p>
       <a class="btn-cta mx-auto mt-6 w-auto px-8" href="{{ route('home') }}">Browse the collection</a>

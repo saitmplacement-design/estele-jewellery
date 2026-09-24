@@ -6,7 +6,7 @@
 @endphp
 
 @if($blogs->isNotEmpty() || $promo)
-  <section class="bg-white py-7 md:py-10">
+  <section class="bg-white py-5 md:py-10">
     <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
       <x-section-header align="left" :eyebrow="$block->subtitle ?: 'Style Notes'" :title="$block->title ?: 'From the Journal'" :cta-label="$block->cta_label ?: 'All stories'" :cta-url="$block->cta_url ?: route('blogs.index')" />
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">

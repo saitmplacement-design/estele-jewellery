@@ -18,7 +18,7 @@
 
 @section('content')
 
-  <div class="bg-bagsurface pb-6 md:pb-8">
+  <div class="min-h-[calc(100svh-180px)] bg-bagsurface pb-6 md:pb-8">
     <div class="flex h-[53px] items-center justify-between bg-white px-3 shadow-[0_1px_4px_rgba(0,0,0,0.1)] md:hidden">
       <div class="flex items-center gap-1">
         <a class="grid h-10 w-9 place-items-center text-heading" href="{{ url()->previous() === url()->current() ? route('home') : url()->previous() }}" aria-label="Back">
@@ -40,7 +40,7 @@
       <h1 class="mb-5 hidden text-[26px] md:block">Your Bag</h1>
 
       @if($items->isEmpty())
-        <div class="px-4 py-20 text-center">
+        <div class="px-4 py-10 text-center">
           <svg class="mx-auto mb-4 h-14 w-14 text-line-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M5 8h14l1 13H4z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
           <p class="mb-5 text-[15px] text-muted">Your bag is empty.</p>
           <a class="btn-cta mx-auto w-auto px-8" href="{{ route('home') }}">Continue Shopping</a>
@@ -84,10 +84,10 @@
                   <form action="{{ route('cart.update', $item) }}" method="post" data-cart-qty-form>
                     @csrf
                     @method('patch')
-                    <div class="inline-flex items-center gap-2" data-qty>
-                      <button class="grid h-11 w-11 place-items-center rounded-sm bg-[#ECECEC] text-[18px] leading-none text-heading md:h-7 md:w-7" type="button" data-qty-minus aria-label="Decrease quantity">&minus;</button>
-                      <input class="h-11 w-11 rounded border border-line-strong bg-white text-center !text-[14px] text-heading md:h-7 md:w-9" type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $item->availableStock() }}" aria-label="Quantity">
-                      <button class="grid h-11 w-11 place-items-center rounded-sm bg-[#ECECEC] text-[18px] leading-none text-heading md:h-7 md:w-7" type="button" data-qty-plus aria-label="Increase quantity">+</button>
+                    <div class="inline-flex items-center gap-1.5" data-qty>
+                      <button class="grid h-7 w-7 place-items-center rounded-sm bg-[#ECECEC] text-[16px] leading-none text-heading" type="button" data-qty-minus aria-label="Decrease quantity">&minus;</button>
+                      <input class="h-7 w-9 rounded border border-line-strong bg-white text-center !text-[13px] text-heading" type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $item->availableStock() }}" aria-label="Quantity">
+                      <button class="grid h-7 w-7 place-items-center rounded-sm bg-[#ECECEC] text-[16px] leading-none text-heading" type="button" data-qty-plus aria-label="Increase quantity">+</button>
                     </div>
                   </form>
                 </div>

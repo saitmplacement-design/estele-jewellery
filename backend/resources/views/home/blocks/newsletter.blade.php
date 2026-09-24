@@ -1,6 +1,6 @@
 @props(['block'])
 
-<section class="bg-pinksoft py-10 text-center md:py-[60px]">
+<section class="bg-pinksoft py-7 text-center md:py-[60px]">
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
     <h2 class="mb-2 text-[19px] md:text-[28px]">{{ $block->title }}</h2>
     @if($block->subtitle)

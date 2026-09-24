@@ -25,7 +25,7 @@
     <x-breadcrumb :items="[['label' => 'My Account']]" />
   </nav>
 
-  <div class="mx-auto w-full max-w-wrapper px-3 pb-10 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
+  <div class="mx-auto w-full max-w-wrapper px-3 pb-6 pt-4 md:pt-6 md:px-4 md:pb-[60px]">
 
     @if(session('success'))
       <p class="mb-5 rounded-lg border border-line bg-pinksoft px-4 py-3 text-[13px] text-heading">{{ session('success') }}</p>

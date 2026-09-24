@@ -830,10 +830,10 @@ import '../css/app.css';
     // rebuilds this whole subtree anyway, so a closure flag is enough —
     // no per-button disabled state to track or reset.
     var busy = false;
+    var qtyTimers = {};
+    var qtySeq = 0;
     if (body) {
       body.addEventListener('click', function (e) {
-        if (busy) return;
-
         var decrement = e.target.closest('[data-cart-qty-decrement]');
         var increment = e.target.closest('[data-cart-qty-increment]');
         var remove    = e.target.closest('[data-cart-remove]');
@@ -848,15 +848,26 @@ import '../css/app.css';
 
           if (next === current) return;
 
-          busy = true;
-          request('/cart/items/' + itemId, {
-            method: 'PATCH',
-            body: new URLSearchParams({ quantity: next }),
-          }).then(function (data) {
-            if (data.success === false) return;
-            render(data.html, data.cartCount);
-          }).finally(function () { busy = false; });
+          // The number changes on the tap itself; the server hears about it
+          // once the taps stop (one request for "+ + +", not three), and
+          // only the newest response is rendered so a slow earlier reply
+          // can't roll the number back.
+          valueEl.textContent = next;
+          clearTimeout(qtyTimers[itemId]);
+          qtyTimers[itemId] = setTimeout(function () {
+            var mine = ++qtySeq;
+            request('/cart/items/' + itemId, {
+              method: 'PATCH',
+              body: new URLSearchParams({ quantity: next }),
+            }).then(function (data) {
+              if (data.success === false || mine !== qtySeq) return;
+              render(data.html, data.cartCount);
+            });
+          }, 350);
+          return;
         }
+
+        if (busy) return;
 
         if (remove) {
           busy = true;
@@ -1196,7 +1207,7 @@ import '../css/app.css';
      ---------------------------------------------------------------------- */
   $$('[data-qty]').forEach(function (box) {
     var input = $('input[type="number"]', box);
-    if (!input) return;
+    if (!input || box.closest('[data-cart-qty-form]')) return;
 
     function bump(by) {
       var min = parseInt(input.getAttribute('min'), 10) || 1;
@@ -1253,15 +1264,92 @@ import '../css/app.css';
   })();
 
   /* ------------------------------------------------------------------------
-     CART PAGE QTY FORMS — the full /cart page has no visible "Update"
-     button (matching the original design); the stepper commits the change
-     straight to the server as soon as it fires a `change` event.
+     CART PAGE QTY — the number changes on the tap itself. Once the taps
+     stop, one PATCH saves the final quantity and the page's totals are
+     refreshed in place from a fresh copy of /cart (no full reload, no
+     loader). Delegated, because that refresh replaces the rows.
      ---------------------------------------------------------------------- */
-  $$('[data-cart-qty-form]').forEach(function (form) {
-    var input = $('input[type="number"]', form);
-    if (!input) return;
-    input.addEventListener('change', function () { form.submit(); });
-  });
+  (function () {
+    if (!$('[data-cart-qty-form]')) return;
+    var timers = {};
+    var seq = 0;
+
+    function refreshCart(mine) {
+      return fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (res) { return res.text(); })
+        .then(function (html) {
+          if (mine !== seq) return;
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var freshMain = doc.querySelector('main');
+          var main = document.querySelector('main');
+          var note = $('[data-order-note]', main);
+          var noteValue = note ? note.value : null;
+          if (freshMain && main) main.innerHTML = freshMain.innerHTML;
+          var freshNote = $('[data-order-note]', main);
+          if (freshNote && noteValue !== null) freshNote.value = noteValue;
+          var freshBar = doc.querySelector('.buybar');
+          var bar = document.querySelector('.buybar');
+          if (freshBar && bar) bar.outerHTML = freshBar.outerHTML;
+          else if (bar && !freshBar) bar.remove();
+          var badge = doc.querySelector('[data-cart-count-badge]');
+          if (badge) {
+            var count = parseInt(badge.textContent, 10) || 0;
+            $$('[data-cart-count-badge]').forEach(function (b) {
+              b.textContent = count;
+              b.style.display = count > 0 ? 'grid' : 'none';
+            });
+          }
+        });
+    }
+
+    function save(form, qty) {
+      var key = form.getAttribute('action');
+      clearTimeout(timers[key]);
+      timers[key] = setTimeout(function () {
+        var mine = ++seq;
+        var body = new FormData(form);
+        body.set('quantity', qty);
+        fetch(key, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: body,
+        }).then(function () { return refreshCart(mine); })
+          .catch(function () { form.submit(); });
+      }, 350);
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-cart-qty-form] [data-qty-minus], [data-cart-qty-form] [data-qty-plus]');
+      if (!btn) return;
+      var form = btn.closest('[data-cart-qty-form]');
+      var input = $('input[type="number"]', form);
+      var min = parseInt(input.getAttribute('min'), 10) || 1;
+      var max = parseInt(input.getAttribute('max'), 10) || 99;
+      var current = parseInt(input.value, 10) || min;
+      var next = Math.max(min, Math.min(max, current + (btn.hasAttribute('data-qty-plus') ? 1 : -1)));
+      if (next === current) return;
+      input.value = next;
+      save(form, next);
+    });
+
+    document.addEventListener('change', function (e) {
+      var input = e.target.closest('[data-cart-qty-form] input[type="number"]');
+      if (!input) return;
+      save(input.form, Math.max(1, parseInt(input.value, 10) || 1));
+    });
+
+    document.addEventListener('submit', function (e) {
+      if (e.target.matches && e.target.matches('[data-cart-qty-form]')) e.preventDefault();
+    }, true);
+
+    // The bag's order note is re-rendered by the refresh above, so keep
+    // carrying what's typed there to checkout (see ORDER NOTE).
+    document.addEventListener('input', function (e) {
+      var note = e.target.closest && e.target.closest('[data-order-note]:not([name])');
+      if (!note) return;
+      try { sessionStorage.setItem('estele:order-note', note.value); } catch (err) {}
+    });
+  })();
 
   /* ------------------------------------------------------------------------
      PRODUCT GALLERY — thumbnail swaps the main image

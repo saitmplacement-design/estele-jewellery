@@ -2,7 +2,7 @@
 
 @php $stats = $block->items; @endphp
 
-<section class="bg-ivory py-8 md:py-12">
+<section class="bg-ivory py-5 md:py-12">
   <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
     <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
       <div class="text-center lg:text-left">

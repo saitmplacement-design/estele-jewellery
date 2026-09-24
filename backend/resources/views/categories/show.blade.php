@@ -64,7 +64,7 @@
     </div>
 
     @if($products->isEmpty())
-      <p class="py-16 text-center text-[13px] text-muted">No products in this category yet — check back soon.</p>
+      <p class="py-10 text-center text-[13px] text-muted">No products in this category yet — check back soon.</p>
     @else
       <div class="grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 md:gap-5 lg:gap-6 xl:grid-cols-5 xl:gap-7 2xl:grid-cols-6">
         @foreach($products as $product)

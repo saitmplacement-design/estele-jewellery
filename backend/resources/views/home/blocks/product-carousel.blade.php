@@ -3,7 +3,7 @@
 @php $products = $block->items->pluck('itemable')->filter(); @endphp
 
 @if($products->isNotEmpty())
-  <section class="py-6 md:py-9">
+  <section class="py-4 md:py-9">
     <div class="mx-auto w-full max-w-wrapper px-3 md:px-10 xl:px-14">
       <x-section-header align="left" :eyebrow="$block->subtitle ?: 'Handpicked for you'" :title="$block->title ?: 'Bestsellers'" :cta-label="$block->cta_label ?: 'View all'" :cta-url="$block->cta_url ?: route('categories.index')" />
       <div @if($products->count() > 8) data-explore @endif>

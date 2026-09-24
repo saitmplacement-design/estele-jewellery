@@ -516,7 +516,7 @@
             </p>
           </form>
 
-          <div class="mt-7 border-t border-line">
+          <div class="mt-5 border-t border-line md:mt-7">
             @if($product->description)
               <details class="group border-b border-line" open>
                 <summary
@@ -585,7 +585,7 @@
       @endif
 
       @if($relatedProducts->isNotEmpty())
-        <section class="py-6 md:py-8 bg-warmbeige/30 border-t border-line">
+        <section class="py-4 md:py-8 bg-warmbeige/30 border-t border-line">
           <div class="mx-auto w-full max-w-wrapper px-4 md:px-8">
             <x-section-header title="You May Also Like" />
             <div
@@ -641,7 +641,7 @@
           color: var(--color-accent);
         }
       </style>
-      <section class="py-6 md:py-8 bg-ivory border-t border-line">
+      <section class="py-4 md:py-8 bg-ivory border-t border-line">
         <div class="mx-auto w-full max-w-wrapper px-4 md:px-8">
           <x-section-header title="Our Promise to You" />
           <div class="promise-grid">
@@ -668,7 +668,7 @@
       {{-- Hidden entirely until a product has at least one review: an empty
       star row with "be the first to write a review" reads as a negative
       signal on a PDP, so it isn't shown at all. --}}
-      <section class="border-t border-line py-10 md:py-[60px] {{ $ratingCount > 0 ? '' : 'hidden' }}" id="reviews">
+      <section class="border-t border-line py-6 md:py-[60px] {{ $ratingCount > 0 ? '' : 'hidden' }}" id="reviews">
         <div class="mx-auto w-full max-w-[760px] px-4">
           <x-section-header title="Customer Reviews" :subtitle="number_format($ratingAverage, 1) . ' out of 5, based on ' . $ratingCount . ' review' . ($ratingCount === 1 ? '' : 's')" />
 

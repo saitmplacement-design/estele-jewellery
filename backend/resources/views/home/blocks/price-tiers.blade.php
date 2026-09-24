@@ -3,7 +3,7 @@
 @php $items = $block->items; @endphp
 
 @if($items->isNotEmpty())
-  <section class="border-y border-line bg-white py-6 md:py-8">
+  <section class="border-y border-line bg-white py-4 md:py-8">
     <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
         <div class="shrink-0 md:w-[220px] lg:w-[260px]">

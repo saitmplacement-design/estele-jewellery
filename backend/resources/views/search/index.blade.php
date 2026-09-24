@@ -51,7 +51,7 @@
     @endif
 
     @if($products->isEmpty())
-      <p class="py-16 text-center text-[13px] text-muted">
+      <p class="py-10 text-center text-[13px] text-muted">
         @if($query === '')
           Use the search bar at the top of the page to find products.
         @else

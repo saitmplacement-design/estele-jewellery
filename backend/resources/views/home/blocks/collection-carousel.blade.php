@@ -3,7 +3,7 @@
 @php $collections = $block->items->pluck('itemable')->filter(); @endphp
 
 @if($collections->isNotEmpty())
-  <section class="bg-white pb-6 md:bg-warmbeige md:py-9">
+  <section class="bg-white pb-4 md:bg-warmbeige md:py-9">
     <div class="mx-auto w-full max-w-wrapper px-3 md:px-4">
       <x-section-header eyebrow="Signature Edits" :title="$block->title" :subtitle="$block->subtitle" :cta-label="$block->cta_label" :cta-url="$block->cta_url" />
       <div @if($collections->count() > 8) data-explore @endif>
