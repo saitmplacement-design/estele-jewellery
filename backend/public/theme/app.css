@@ -1569,6 +1569,65 @@
     background-color: var(--color-white);
   }
 
+  .card-dots {
+    cursor: pointer;
+  }
+
+  .card-arrow {
+    z-index: 3;
+    height: calc(var(--spacing) * 8);
+    width: calc(var(--spacing) * 8);
+    --tw-translate-y: calc(calc(1 / 2 * 100%) * -1);
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+    background-color: #ffffffe6;
+    border-radius: 3.40282e38px;
+    place-items: center;
+    display: none;
+    position: absolute;
+    top: 50%;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .card-arrow {
+      background-color: color-mix(in oklab, var(--color-white) 90%, transparent);
+    }
+  }
+
+  .card-arrow {
+    color: var(--color-heading);
+    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    transition-property: opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+    --tw-duration: .2s;
+    opacity: 0;
+    transition-duration: .2s;
+  }
+
+  .card-arrow svg {
+    height: calc(var(--spacing) * 4);
+    width: calc(var(--spacing) * 4);
+  }
+
+  .card-arrow--prev {
+    left: 8px;
+  }
+
+  .card-arrow--next {
+    right: 8px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card-arrow {
+      display: grid;
+    }
+
+    .product-card:hover .card-arrow {
+      opacity: 1;
+    }
+  }
+
   .cat-tile__frame {
     border-radius: var(--radius-lg);
     background-color: var(--color-placeholder);

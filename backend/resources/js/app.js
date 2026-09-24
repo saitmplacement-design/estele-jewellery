@@ -1684,31 +1684,88 @@ import '../css/app.css';
 
     function goTo(idx) { current = idx; setPos(current, true); }
 
-    /* --- Touch swipe (mobile) ------------------------------------------ */
-    var txStart = 0, tyStart = 0, txMoved = 0, isHoriz = false;
+    /* --- Drag / swipe (touch, pen and mouse) ----------------------------
+       The photo follows the finger while dragging and settles on release,
+       looping endlessly in both directions. touch-action: pan-y keeps
+       vertical page scrolling native, while a sideways swipe on a photo
+       moves only the photos — not a carousel row it sits in. */
+    scroller.style.touchAction = 'pan-y';
+    [].slice.call(track.querySelectorAll('img')).forEach(function (img) {
+      img.setAttribute('draggable', 'false');
+    });
 
-    scroller.addEventListener('touchstart', function (e) {
-      txStart = e.touches[0].clientX;
-      tyStart = e.touches[0].clientY;
-      txMoved = 0; isHoriz = false;
-    }, { passive: true });
+    var down = false, axis = null, sx = 0, sy = 0, dx = 0, width = 1, dragged = false;
 
-    scroller.addEventListener('touchmove', function (e) {
-      var dx = Math.abs(e.touches[0].clientX - txStart);
-      var dy = Math.abs(e.touches[0].clientY - tyStart);
-      if (!isHoriz && dx > dy + 4) isHoriz = true;
-    }, { passive: true });
+    function moveTo(n) {
+      if (n > realCount + 1) n = realCount + 1;
+      if (n < 0) n = 0;
+      goTo(n);
+    }
 
-    scroller.addEventListener('touchend', function (e) {
-      txMoved = e.changedTouches[0].clientX - txStart;
-      if (isHoriz && Math.abs(txMoved) > 28) {
-        goTo(txMoved < 0 ? current + 1 : current - 1);
+    scroller.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      down = true; axis = null; dx = 0; dragged = false;
+      sx = e.clientX; sy = e.clientY;
+      width = scroller.clientWidth || 1;
+    });
+
+    scroller.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var mx = e.clientX - sx, my = e.clientY - sy;
+      if (axis === null && (Math.abs(mx) > 6 || Math.abs(my) > 6)) {
+        axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+        if (axis === 'x') {
+          try { scroller.setPointerCapture(e.pointerId); } catch (err) {}
+          track.style.transition = 'none';
+        }
       }
-    }, { passive: true });
+      if (axis !== 'x') return;
+      dx = mx; dragged = true;
+      track.style.transform = 'translateX(calc(-' + (current * 100) + '% + ' + dx + 'px))';
+    });
 
-    /* Prevent card link firing after a horizontal swipe. */
+    function release() {
+      if (!down) return;
+      down = false;
+      if (axis !== 'x') return;
+      track.style.transition = 'transform .38s cubic-bezier(.25,.46,.45,.94)';
+      if (Math.abs(dx) > Math.min(60, width * 0.15)) moveTo(dx < 0 ? current + 1 : current - 1);
+      else setPos(current, true);
+    }
+    scroller.addEventListener('pointerup', release);
+    scroller.addEventListener('pointercancel', release);
+    // The card is a link, and browsers start dragging the link itself on a
+    // mouse drag (cancelling our pointer stream) — so turn that off.
+    var link = scroller.closest('a');
+    if (link) {
+      link.setAttribute('draggable', 'false');
+      link.addEventListener('dragstart', function (e) { e.preventDefault(); });
+    }
+
+    /* A drag must not also open the product. */
     scroller.addEventListener('click', function (e) {
-      if (Math.abs(txMoved) > 8) e.preventDefault();
+      if (dragged) { e.preventDefault(); e.stopPropagation(); dragged = false; }
+    }, true);
+
+    /* --- Arrows (shown on hover where there is a mouse) and dots ------- */
+    var frame = scroller.parentElement;
+    ['prev', 'next'].forEach(function (dir) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'card-arrow card-arrow--' + dir;
+      btn.setAttribute('aria-label', dir === 'prev' ? 'Previous photo' : 'Next photo');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="' + (dir === 'prev' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6') + '"/></svg>';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        moveTo(dir === 'prev' ? current - 1 : current + 1);
+      });
+      frame.appendChild(btn);
+    });
+    dotItems.forEach(function (dot, i) {
+      dot.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        goTo(i + 1);
+      });
     });
   }
 
