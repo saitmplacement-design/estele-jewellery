@@ -66,7 +66,16 @@ class EditVendor extends EditRecord
                     ->body("A password setup link was sent to {$this->record->email}.")
                     ->success()
                     ->send();
+
+                return;
             }
+
+            Notification::make()
+                ->title('Saved, but the setup email was not delivered')
+                ->body(new \Illuminate\Support\HtmlString(nl2br(e($service->failureDetails()))))
+                ->danger()
+                ->persistent()
+                ->send();
         } catch (\RuntimeException $e) {
             Notification::make()
                 ->title('Login was not updated')

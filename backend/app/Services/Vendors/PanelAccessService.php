@@ -4,6 +4,7 @@ namespace App\Services\Vendors;
 
 use App\Models\User;
 use App\Models\Vendor;
+use App\Notifications\Channels\WhatsAppChannel;
 use App\Notifications\PanelAccessInvitation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -127,38 +128,100 @@ class PanelAccessService
         return "That email already belongs to {$reason}. Use a different address for this vendor.";
     }
 
+    /** Why the last sendSetupLink() call did not deliver, for the admin. */
+    public ?string $lastError = null;
+
     /**
-     * Issue a fresh setup token and notify the vendor over mail (and WhatsApp
-     * when a number is on file). Returns false if the link could not be sent —
-     * the caller surfaces that rather than claiming success.
+     * The setup link from the last sendSetupLink() call, so an admin can pass
+     * it on by hand when email delivery isn't working.
+     */
+    public ?string $lastSetupUrl = null;
+
+    /**
+     * Issue a fresh setup token and notify the vendor by email (and WhatsApp
+     * when a number is on file). Returns true only when the email was really
+     * handed to a mail server; otherwise $lastError says why and
+     * $lastSetupUrl holds the link to share manually.
      */
     public function sendSetupLink(Vendor $vendor, ?User $user = null, bool $isResend = false): bool
     {
+        $this->lastError = null;
+        $this->lastSetupUrl = null;
         $user ??= $vendor->user;
 
         if (! $user || blank($user->email)) {
+            $this->lastError = 'This vendor has no email address.';
+
             return false;
         }
 
+        $token = Password::broker('panel_invites')->createToken($user);
+        $this->lastSetupUrl = route('panel.password.setup', ['token' => $token, 'email' => $user->email]);
+        $notification = new PanelAccessInvitation(
+            vendor: $vendor,
+            setupUrl: $this->lastSetupUrl,
+            isResend: $isResend,
+        );
+
+        // Email and WhatsApp are sent separately so a WhatsApp outage can't
+        // make a delivered email look like a failure (or vice versa).
         try {
-            $token = Password::broker('panel_invites')->createToken($user);
-
-            $vendor->notify(new PanelAccessInvitation(
-                vendor: $vendor,
-                setupUrl: route('panel.password.setup', ['token' => $token, 'email' => $user->email]),
-                isResend: $isResend,
-            ));
-
-            return true;
+            $vendor->notifyNow($notification, ['mail']);
         } catch (\Throwable $e) {
-            // A mail/queue failure must not roll back the account that was
-            // just created — the admin can resend from the vendor page.
+            // A mail failure must not roll back the account that was just
+            // created — the admin can resend, or share the link by hand.
             Log::warning('Failed to send panel access invitation.', [
                 'vendor_id' => $vendor->id,
                 'exception' => $e->getMessage(),
             ]);
+            $this->lastError = 'The mail server refused the email: '.Str::limit($e->getMessage(), 220);
 
             return false;
+        }
+
+        $this->sendWhatsAppCopy($vendor, $notification);
+
+        // The "log"/"array" mailers accept every message without sending it,
+        // so a live site left on them would report success while nothing
+        // ever arrives.
+        $mailer = config('mail.default');
+        if (in_array($mailer, ['log', 'array'], true) && ! app()->runningUnitTests()) {
+            $this->lastError = "Email is not set up on this server (MAIL_MAILER={$mailer}), so the email was only written to the log file.";
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Human-readable failure for admin notifications: the reason plus the
+     * link to send by hand.
+     */
+    public function failureDetails(): string
+    {
+        $details = $this->lastError ?? 'The setup link could not be sent.';
+
+        if ($this->lastSetupUrl) {
+            $details .= "\n\nSend this link to the vendor yourself (valid 48 hours):\n{$this->lastSetupUrl}";
+        }
+
+        return $details;
+    }
+
+    private function sendWhatsAppCopy(Vendor $vendor, PanelAccessInvitation $notification): void
+    {
+        if (! in_array(WhatsAppChannel::class, $notification->via($vendor), true)) {
+            return;
+        }
+
+        try {
+            $vendor->notifyNow($notification, [WhatsAppChannel::class]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send panel access invitation over WhatsApp.', [
+                'vendor_id' => $vendor->id,
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 

@@ -101,8 +101,10 @@ class VendorsTable
                 .(filled($record->whatsapp_number) ? " and WhatsApp {$record->whatsapp_number}" : '')
                 .'. Any previous link stops working.')
             ->action(function (Vendor $record) {
+                $service = app(PanelAccessService::class);
+
                 try {
-                    if (app(PanelAccessService::class)->grant($record, isResend: true)) {
+                    if ($service->grant($record, isResend: true)) {
                         Notification::make()->title("Setup link sent to {$record->email}")->success()->send();
 
                         return;
@@ -113,7 +115,12 @@ class VendorsTable
                     return;
                 }
 
-                Notification::make()->title('Could not send the setup link.')->danger()->send();
+                Notification::make()
+                    ->title('The setup email was not delivered')
+                    ->body(new \Illuminate\Support\HtmlString(nl2br(e($service->failureDetails()))))
+                    ->danger()
+                    ->persistent()
+                    ->send();
             });
     }
 

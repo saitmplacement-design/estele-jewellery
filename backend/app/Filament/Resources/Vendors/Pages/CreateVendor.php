@@ -35,8 +35,10 @@ class CreateVendor extends CreateRecord
             return;
         }
 
+        $service = app(PanelAccessService::class);
+
         try {
-            $sent = app(PanelAccessService::class)->grant($this->record);
+            $sent = $service->grant($this->record);
         } catch (\RuntimeException $e) {
             Notification::make()
                 ->title('Vendor saved, but no login was created')
@@ -58,9 +60,10 @@ class CreateVendor extends CreateRecord
         }
 
         Notification::make()
-            ->title('Account created, but the link could not be sent')
-            ->body('Use "Resend setup link" on the vendor once mail delivery is working.')
+            ->title('Account created, but the email was not delivered')
+            ->body(new \Illuminate\Support\HtmlString(nl2br(e($service->failureDetails()))))
             ->danger()
+            ->persistent()
             ->send();
     }
 
