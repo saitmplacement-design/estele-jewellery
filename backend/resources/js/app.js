@@ -1747,20 +1747,7 @@ import '../css/app.css';
       if (dragged) { e.preventDefault(); e.stopPropagation(); dragged = false; }
     }, true);
 
-    /* --- Arrows (shown on hover where there is a mouse) and dots ------- */
-    var frame = scroller.parentElement;
-    ['prev', 'next'].forEach(function (dir) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'card-arrow card-arrow--' + dir;
-      btn.setAttribute('aria-label', dir === 'prev' ? 'Previous photo' : 'Next photo');
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="' + (dir === 'prev' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6') + '"/></svg>';
-      btn.addEventListener('click', function (e) {
-        e.preventDefault(); e.stopPropagation();
-        moveTo(dir === 'prev' ? current - 1 : current + 1);
-      });
-      frame.appendChild(btn);
-    });
+    /* --- Dots jump straight to a photo -------------------------------- */
     dotItems.forEach(function (dot, i) {
       dot.addEventListener('click', function (e) {
         e.preventDefault(); e.stopPropagation();
