@@ -1,9 +1,668 @@
+/* ==========================================================================
+   ESTELE — Tailwind entry
+   Every design token lives in the @theme block below. Change a value here and
+   it updates across every page and every utility class Tailwind generates.
+   Values were read off the live site's theme CSS (gh.css / inline :root).
+   ========================================================================== */
+
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* Scan the generated HTML so Tailwind knows which utilities to emit. */
+@source '../*.html';
+@source '../pages/*.html';
+@source '../backend/resources/views/**/*.blade.php';
+/* Laravel renders pagination from its own packaged Blade view (pagination::tailwind),
+   which lives outside resources/views. Without this glob Tailwind never sees
+   sm:flex / sm:flex-1 / sm:gap-2 / sm:justify-between, so the desktop page-number
+   block keeps its base `hidden` and pagination vanishes from 640px up. */
+@source '../backend/vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
+/* --------------------------------------------------------------------------
+   DESIGN TOKENS
+   In Tailwind v4 these ARE the config — `--color-accent` creates `bg-accent`,
+   `text-accent`, `border-accent`, and so on.
+   -------------------------------------------------------------------------- */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+  /* ---- Fonts ----
+     Cinzel carries the brand name and section titles (engraved-capital feel,
+     the register jewellery houses use); Playfair for editorial headings;
+     Allura only ever for a single scripted accent word; Plus Jakarta for UI. */
+  --font-sans: 'Lato', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+  --font-display: 'Cinzel', ui-serif, Georgia, serif;
+  --font-script: 'Allura', ui-serif, cursive;
+
+  /* ---- Brand (Rose + Gold on warm white) ---- */
+  --color-accent: #CB6B88;
+  --color-accent-dark: #AD3D5F;
+  --color-rose: #CB6B88;
+  --color-rose-dark: #AD3D5F;
+  --color-gold: #D4AF37;
+  --color-gold-hover: #B38728;
+  --color-gold-light: #F5E6BE;
+
+  /* ---- Text ---- */
+  --color-ink: #33302F;
+  --color-heading: #1F1D1D;
+  --color-muted: #666666;
+
+  /* ---- Surfaces ---- */
+  --color-ivory: #FAF8F5;
+  --color-warmbeige: #F3EDE7;
+  --color-pinksoft: #FBF1F4;
+  --color-greysoft: #F2EFEB;
+  --color-cream: #FAF8F5;
+  --color-placeholder: #F2EFEB;
+  --color-paper: #FFFFFF;
+  /* Jewellery reads brightest against a dark case — carries the light/dark
+     alternation the homepage sections scroll through. */
+  --color-deepwine: #2B141C;
+
+  /* ---- Lines ---- */
+  --color-line: #EAE4DE;
+  --color-line-strong: #D9D0C8;
+
+  /* ---- Commerce ---- */
+  --color-price: #1F1D1D;
+  --color-salebadge: #AD3D5F;
+  --color-newbadge: #CB6B88;
+  --color-soldout: #8C807B;
+  --color-star: #D4AF37;
+  --color-success: #007F46;
+  --color-skeleton: #E9EAEE;
+  --color-bagsurface: #FBFAF7;
+
+  /* ---- Header + announcement ---- */
+  --color-headergold: #FAF8F5;
+  --color-announce: #AD3D5F;
+
+  /* ---- Layout ---- */
+  /* Wide displays were letterboxing the grid into 1360px, which forced the
+     same column count to render at a much larger card size. */
+  --container-wrapper: 1480px;
+
+  /* ---- Breakpoints ---- */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1360px;
+}
+
+/* --------------------------------------------------------------------------
+   BASE
+   -------------------------------------------------------------------------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  body {
+    /* Base sizes are tuned for a phone; a desktop viewport gets a step up so
+       the same components don't read as undersized on a wide display. */
+    @apply bg-paper font-sans text-[14px] leading-relaxed text-ink antialiased;
+    overflow-x: hidden;
+  }
+
+  body.is-locked { overflow: hidden; }
+
+  @media (min-width: 1024px) { body { font-size: 15px; } }
+  @media (min-width: 1200px) { body { font-size: 15.5px; } }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-bold leading-tight text-heading;
+  }
+
+  img {
+    @apply block max-w-full h-auto;
+  }
+
+  /* Native disclosure markers off — every <details> here is custom-styled. */
+  summary { list-style: none; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+
+  /* Tailwind's preflight resets buttons to `cursor: default`, so every
+     button/label/role=button on the site showed an arrow rather than the
+     hand pointer on hover. Disabled controls keep the not-allowed cursor. */
+  button, label, select, [role="button"], [type="button"], [type="submit"], [type="reset"] {
+    cursor: pointer;
+  }
+  button:disabled, [type="button"]:disabled, [type="submit"]:disabled, [disabled] {
+    cursor: not-allowed;
+  }
+
+  [hidden] { display: none !important; }
+
+  /* iOS Safari auto-zooms the whole page in when a focused input's
+     font-size is under 16px — most form fields site-wide sit at 13-14px
+     (sized for desktop density), so tapping into e.g. the login phone
+     field or a cart quantity box zoomed the viewport in on every mobile
+     visit. Mobile-only floor at the exact zoom threshold; desktop keeps
+     each field's own designed size. */
+  @media (max-width: 767px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   COMPONENTS
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* ---- CMS rich text (blog posts, policy pages) ----
+     The admin RichEditor emits headings, lists, links and blockquotes, but
+     Tailwind's preflight resets heading sizes to `inherit` and strips list
+     markers, and @tailwindcss/typography is not a dependency here — so
+     .prose was styling nothing and long articles rendered as one flat wall
+     of 14px text. These rules restore the semantics the editor produces. */
+  .prose h1 { @apply mb-3 mt-7 text-[20px] font-bold leading-snug text-heading; }
+  .prose h2 { @apply mb-2.5 mt-7 text-[18px] font-bold leading-snug text-heading; }
+  .prose h3 { @apply mb-2 mt-6 text-[16px] font-bold leading-snug text-heading; }
+  .prose h4 { @apply mb-2 mt-5 text-[15px] font-bold leading-snug text-heading; }
+  .prose p { @apply mb-4; }
+  .prose ul { @apply mb-4 list-disc space-y-1.5 pl-5; }
+  .prose ol { @apply mb-4 list-decimal space-y-1.5 pl-5; }
+  .prose li { @apply pl-1; }
+  .prose li::marker { color: var(--color-accent-dark); }
+  .prose a { @apply text-accent-dark underline underline-offset-2; }
+  .prose strong { @apply font-bold text-heading; }
+  .prose em { @apply italic; }
+  .prose blockquote { @apply my-5 border-l-[3px] border-accent/40 pl-4 italic text-muted; }
+  .prose img { @apply my-5 h-auto max-w-full rounded-lg; }
+  .prose hr { @apply my-7 border-t border-line; }
+  .prose table { @apply my-5 w-full border-collapse text-[13px]; }
+  .prose th, .prose td { @apply border border-line px-2.5 py-1.5 text-left; }
+  .prose th { @apply bg-paper font-bold text-heading; }
+  /* Keep the first block flush with whatever sits above it (featured image,
+     page title) rather than inheriting a heading's top margin. */
+  .prose > :first-child { @apply mt-0; }
+  .prose > :last-child { @apply mb-0; }
+
+
+  /* ---- Header: warm white with a hairline rule ---- */
+  .header-gradient {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #EAE4DE;
+  }
+
+  [data-header] { transition: transform .3s ease, box-shadow .3s ease; }
+  @media (max-width: 1023px) {
+    [data-header].is-hidden { transform: translateY(-100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-header] { transition: none; }
+  }
+
+  .btn-cta {
+    @apply inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-accent-dark px-5 text-[16px] font-bold text-white transition-opacity disabled:opacity-60;
+    background-image: linear-gradient(270deg, var(--color-accent-dark) 7%, var(--color-accent) 100%);
+  }
+  .btn-cta:active { opacity: .88; }
+  .btn-cta-outline {
+    @apply inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-accent-dark bg-white px-5 text-[16px] font-bold text-accent-dark transition-colors disabled:opacity-60;
+  }
+  .btn-cta-outline:active { @apply bg-pinksoft; }
+
+  .page-loader {
+    @apply fixed inset-0 z-[400] grid place-items-center bg-black/70 opacity-0 transition-opacity duration-200;
+    pointer-events: none;
+  }
+  .page-loader.is-active {
+    @apply opacity-100;
+    pointer-events: auto;
+  }
+  .page-loader__disc { @apply grid h-[70px] w-[70px] place-items-center rounded-full bg-white; }
+  .page-loader__arc {
+    @apply block h-[46px] w-[46px] rounded-full;
+    border: 4px solid transparent;
+    border-top-color: var(--color-accent-dark);
+    animation: loader-rotation 1s linear infinite;
+  }
+  @keyframes loader-rotation { to { transform: rotate(360deg); } }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-skeleton) 25%, #F4F5F7 37%, var(--color-skeleton) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+  }
+  @keyframes skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  .sheet-backdrop {
+    @apply fixed inset-0 z-[300] bg-black/50;
+    animation: sheet-fade .25s ease both;
+  }
+  .sheet {
+    @apply fixed inset-x-0 bottom-0 z-[301] max-h-[92vh] overflow-y-auto rounded-t-[20px] bg-white pb-[env(safe-area-inset-bottom)];
+    animation: sheet-up .35s ease both;
+  }
+  @media (min-width: 768px) {
+    .sheet {
+      @apply inset-x-auto bottom-auto left-1/2 top-1/2 w-[440px] rounded-[20px];
+      animation: sheet-pop .25s ease both;
+    }
+  }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes sheet-pop { from { opacity: 0; transform: translate(-50%, -46%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+  @keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .field {
+    @apply flex h-14 w-full items-center gap-2 rounded-[4px] border border-line-strong bg-white px-4 transition-colors focus-within:border-heading;
+  }
+  .field > input { @apply h-full w-full min-w-0 border-0 bg-transparent text-[16px] font-semibold text-heading outline-none placeholder:font-normal placeholder:text-muted; }
+
+  .otp-box {
+    @apply h-[56px] w-full min-w-0 rounded-xl border-[1.5px] border-line-strong bg-white text-center text-[20px] font-bold text-heading outline-none transition-colors focus:border-accent-dark;
+  }
+  /* A filled box stays brand-bordered after focus moves on, so the digits
+     entered so far read as a filled run rather than resetting to grey. */
+  .otp-box:not(:placeholder-shown) { @apply border-accent-dark; }
+
+  .live-dot {
+    @apply inline-block h-2.5 w-2.5 rounded-full bg-accent;
+    animation: live-dot-flash 2s ease infinite;
+  }
+  @keyframes live-dot-flash { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+  .info-chip {
+    @apply inline-flex items-center gap-1.5 rounded-[3px] bg-[#DADADA]/50 px-2.5 py-[5px] text-[13px] text-black/60;
+  }
+
+  .buybar {
+    @apply fixed inset-x-0 bottom-0 z-[115] flex items-center gap-2.5 bg-white px-2.5 py-[9px] pb-[calc(9px+env(safe-area-inset-bottom))];
+    box-shadow: 0 -2px 9px 0 rgba(0, 0, 0, .08), 0 -1px 2px 0 rgba(0, 0, 0, .15);
+  }
+  /* Product and cart pages pin their own action bar to the same edge. Two
+     stacked bars would eat half the viewport on a phone, and "Add to bag" is
+     the only action that matters there — so the buybar wins and the tab bar
+     (plus the spacer the layout reserves for it) stands down on those pages. */
+  body:has(.buybar) .bottom-nav { display: none; }
+  body:has(.buybar) .bottom-nav-spacer { display: none; }
+  /* The floating chat bubble and back-to-top are pinned at 74px/134px, which
+     clears the 56px tab bar but not a .buybar — that is 67px tall before the
+     home-indicator inset and ~101px with it, so on a notched phone the bubble
+     sat on top of the primary checkout CTA. Lift both above the bar instead. */
+  @media (max-width: 767px) {
+    body:has(.buybar) [data-chat] { bottom: calc(79px + env(safe-area-inset-bottom)); }
+    body:has(.buybar) .back-to-top-btn { bottom: calc(139px + env(safe-area-inset-bottom)) !important; }
+  }
+  /* Listing pages (category, collection, search) pin a Sort/Filter bar to the
+     same edge via @section('sticky_bar'). It arbitrates identically: the bar
+     is the page's primary action, so the tab bar and its spacer stand down
+     rather than stacking a second row over the last product tile. */
+  body:has(.listing-bar) .bottom-nav { display: none; }
+  body:has(.listing-bar) .bottom-nav-spacer { display: none; }
+  /* The bar is 52px plus the home-indicator inset. The listing pages end in
+     pb-10 (40px), which the bar would otherwise cover along with the last row
+     of product tiles, so top up the shortfall here instead of hardcoding the
+     bar's height into each page's padding. */
+  @media (max-width: 767px) {
+    body:has(.listing-bar) main { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
+  }
+
+  .bag-card { @apply rounded-xl bg-white p-4; }
+
+  @media (max-width: 767px) {
+    [data-filter-panel]:not(.is-sheet-open) > form { display: none; }
+    [data-filter-panel].is-sheet-open > form {
+      @apply fixed inset-x-0 bottom-0 z-[301] max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-white pb-[calc(16px+env(safe-area-inset-bottom))];
+      box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .5);
+      animation: sheet-up .35s ease both;
+    }
+  }
+
+  /* ---- Header nav/icon hover ---- */
+  [data-header] {
+    --nav-hover-color: #AD3D5F;
+  }
+  [data-header].is-stuck {
+    --nav-hover-color: #AD3D5F;
+  }
+
+  /* ---- Brand wordmark: engraved capitals, gold leaf ----
+     Gradient stops read as light catching a polished gold edge, which is why
+     it is reserved for the wordmark and never applied to body copy. */
+  .wordmark {
+    @apply font-display font-semibold tracking-[0.08em];
+  }
+  .gold-leaf {
+    background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* ---- Carousel: CSS does the layout, JS only moves scrollLeft ---- */
+  .carousel-track {
+    @apply flex overflow-x-auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .carousel-track::-webkit-scrollbar { display: none; }
+  .carousel-track > * { scroll-snap-align: start; flex: 0 0 auto; }
+
+  /* ---- Carousel pagination dots (generic, populated by data-carousel-dots) ---- */
+  .carousel__dot {
+    @apply h-1.5 w-1.5 rounded-full bg-line-strong transition-all duration-300;
+  }
+  .carousel__dot.is-active {
+    @apply w-5 bg-heading;
+  }
+
+  /* ---- Hero uses a cross-fade, matching the live theme's slide-eff-fade ---- */
+  .hero-fade { @apply relative; }
+  .hero-fade > .hero-slide {
+    @apply absolute inset-0 opacity-0 transition-opacity duration-700 ease-in-out;
+    pointer-events: none;
+  }
+  .hero-fade > .hero-slide.is-active {
+    @apply opacity-100;
+    pointer-events: auto;
+  }
+  /* First slide holds the height so the box does not collapse. */
+  .hero-fade > .hero-slide:first-child {
+    @apply relative;
+  }
+
+  /* ---- +/- markers on <details> ---- */
+  .marker-pm > summary::after {
+    content: '+';
+    @apply text-[17px] text-muted;
+  }
+  .marker-pm[open] > summary::after { content: '\2212'; }
+
+  /* ---- Product card: quiet by default, gold edge + slow zoom on hover ----
+     The zoom lives on the image inside a fixed-ratio clipping frame so the
+     card box itself never shifts and no reflow reaches neighbouring cards. --}}
+  */
+  .product-card {
+    @apply relative flex h-full flex-col bg-white;
+  }
+  .product-card__frame {
+    @apply relative overflow-hidden rounded-md;
+    aspect-ratio: 1 / 1;
+  }
+  .product-card__ribbon {
+    @apply absolute left-0 top-2 z-[2] bg-deepwine py-[3px] pl-1.5 pr-3 text-[11px] font-bold leading-none text-white;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 50%, 100% 100%, 0 100%);
+  }
+  .product-card__ribbon--sale { @apply bg-salebadge; }
+  .product-card__img {
+    @apply h-full w-full object-cover;
+    transition: transform .6s cubic-bezier(.16, 1, .3, 1);
+  }
+  .product-card:hover .product-card__img { transform: scale(1.06); }
+  @media (prefers-reduced-motion: reduce) {
+    .product-card__img { transition: none; }
+    .product-card:hover .product-card__img { transform: none; }
+  }
+
+  /* ---- Card image scroller: JS creates a flex track inside and slides it
+     with translateX for a true infinite loop. The scroller is just the
+     clipping viewport — overflow hidden, full size. ---- */
+  .card-scroller {
+    @apply relative block h-full w-full;
+    overflow: hidden !important;
+  }
+  .card-scroller__img {
+    @apply h-full w-full shrink-0 object-cover;
+    /* No scroll-snap — JS handles sliding via transform track. */
+  }
+  /* The zoom-on-hover would fight the slide animation. */
+  .product-card:hover .card-scroller__img { transform: none; }
+
+  .card-dots {
+    @apply absolute bottom-1.5 left-1/2 z-[2] flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/45 px-1.5 py-1;
+  }
+  .card-dot {
+    @apply block h-[5px] w-[5px] rounded-full bg-white/55;
+    transition: width .2s ease, background-color .2s ease;
+  }
+  .card-dot.is-active { @apply w-3 bg-white; }
+
+  /* ---- Category tile: circular frame, the shape Indian jewellery retail
+     uses to show a piece rather than a packshot ---- */
+  .cat-tile__frame {
+    @apply relative block overflow-hidden rounded-lg bg-placeholder;
+    aspect-ratio: 1 / 1;
+  }
+  .cat-tile__label {
+    @apply absolute inset-x-0 bottom-0 z-[1] px-2 pb-2 pt-9 text-center text-[13px] leading-tight text-white md:pb-3 md:text-[15px];
+    background-image: linear-gradient(to top, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0));
+  }
+  .loop-stage {
+    @apply relative w-full select-none overflow-hidden py-1;
+    --loop-w: 80px;
+    --loop-gap: 10px;
+    touch-action: pan-y;
+    cursor: grab;
+  }
+  .loop-stage:active { cursor: grabbing; }
+  @media (min-width: 768px) {
+    .loop-stage { --loop-gap: 24px; }
+  }
+  .loop-track {
+    @apply flex w-max;
+    gap: var(--loop-gap);
+    will-change: transform;
+  }
+  .loop__item {
+    @apply flex flex-col items-center gap-1.5 md:gap-2.5;
+    flex: 0 0 var(--loop-w);
+  }
+  .loop__frame {
+    @apply relative block w-full overflow-hidden rounded-full;
+    aspect-ratio: 1 / 1;
+  }
+  .loop__img { @apply h-full w-full object-cover; pointer-events: none; }
+  .loop__label { @apply text-center text-[11.5px] font-bold leading-tight text-heading md:text-[15px]; }
+  .loop-arrow {
+    @apply absolute z-[3] grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full border border-line bg-white/95 text-heading shadow-sm transition-colors active:bg-pinksoft md:h-9 md:w-9 md:hover:border-accent-dark md:hover:text-accent-dark;
+    top: calc(4px + var(--loop-arrow-y, 40px));
+  }
+
+  .cat-tile__img {
+    @apply h-full w-full object-cover;
+    transition: transform .6s cubic-bezier(.16, 1, .3, 1);
+  }
+  .cat-tile:hover .cat-tile__img { transform: scale(1.07); }
+  @media (prefers-reduced-motion: reduce) {
+    .cat-tile__img { transition: none; }
+    .cat-tile:hover .cat-tile__img { transform: none; }
+  }
+
+  /* ---- Explore-more grid: caps a product/collection grid to 4 rows on
+     mobile only (grid-cols-2 there -> 8 items). sm+ shows everything since
+     more columns already fit the same items in fewer rows. "Explore more"
+     removes the cap in place instead of paginating. ---- */
+  .explore-grid-4row > :nth-child(n+9) { display: none; }
+  @media (min-width: 640px) {
+    .explore-grid-4row > :nth-child(n+9) { display: revert; }
+  }
+  .explore-grid-4row.is-expanded > * { display: revert !important; }
+
+  /* ---- Section heading: serif title with a short gold rule under it ---- */
+  .section-head { @apply text-center; }
+  .section-head__title {
+    @apply font-sans text-[18px] font-normal uppercase leading-tight tracking-[0.02em] text-accent-dark md:text-[26px] lg:text-[30px] xl:text-[34px];
+  }
+  .section-head--strip {
+    @apply -mx-3 mb-4 flex h-[53px] items-center justify-center md:mx-0 md:mb-9 md:h-auto md:bg-none;
+    background-image: linear-gradient(100deg, #EDEDED 0%, #FFFFFF 22%, #FFFFFF 78%, #EDEDED 100%);
+  }
+  .section-head__title--plain {
+    @apply font-sans text-[20px] font-bold normal-case tracking-normal text-heading md:text-[26px];
+  }
+  .section-head__script {
+    @apply font-script text-[30px] leading-none text-rose md:text-[38px] lg:text-[44px] xl:text-[48px];
+  }
+  .section-head__rule {
+    @apply mx-auto mt-3 block h-px w-12 bg-gold lg:mt-4 lg:w-16;
+  }
+  .section-head__sub {
+    @apply mx-auto mt-3 max-w-[46ch] text-[13.5px] leading-relaxed text-muted lg:mt-4 lg:text-[15px];
+  }
+  .section-head__eyebrow {
+    @apply mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.22em] text-rose md:mb-2 md:text-[11.5px];
+  }
+  .section-head__cta {
+    @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors hover:text-rose md:text-[12px];
+  }
+
+  /* ---- Cart table -> stacked rows on mobile (see cart/index.blade.php's
+     max-md:[&_tr]:block etc.): the [data-label] attributes were already on
+     the Price/Qty/Total cells but nothing rendered them, so a shopper on
+     mobile just saw bare stacked values ("₹499", "2", "₹998") with no
+     indication which was which. ---- */
+  @media (max-width: 767px) {
+    .cart-td[data-label]::before {
+      content: attr(data-label);
+      @apply mb-1 block text-[11px] font-medium uppercase tracking-[0.3px] text-muted;
+    }
+  }
+
+  /* ---- Screen-reader only ---- */
+  .sr-only-custom {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ---- Button loading state: 3 bouncing dots, swapped in for the label
+     on submit (OTP login forms) so the page feels responsive during the
+     full-page-reload round trip. ---- */
+  .btn-loading-dots {
+    @apply inline-flex items-center justify-center gap-1.5;
+  }
+  .btn-loading-dots span {
+    @apply h-1.5 w-1.5 rounded-full bg-current;
+    animation: btn-loading-bounce 1.4s ease-in-out infinite both;
+  }
+  .btn-loading-dots span:nth-child(2) { animation-delay: .16s; }
+  .btn-loading-dots span:nth-child(3) { animation-delay: .32s; }
+  @keyframes btn-loading-bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: .5; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-loading-dots span { animation: none; opacity: 1; }
+  }
+
+  /* ==========================================================================
+     MOBILE APP SHELL
+     The account/auth/sell screens are designed phone-first as an app-like
+     shell: a fixed tab bar, gradient cards, and icon-led menu rows. Everything
+     below is hidden or neutralised from md up, where the desktop header and
+     wider layouts already carry the same destinations.
+     ========================================================================== */
+
+  /* ---- Fixed bottom tab bar (mobile only) ---- */
+  .bottom-nav {
+    @apply fixed inset-x-0 bottom-0 z-[110] grid grid-cols-4 border-t border-line bg-white;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, .06);
+  }
+  .bottom-nav-item {
+    @apply relative flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 py-2 text-muted transition-colors;
+  }
+  .bottom-nav-icon { @apply relative grid h-6 w-6 place-items-center; }
+  .bottom-nav-icon > svg { @apply h-[22px] w-[22px]; }
+  .bottom-nav-label {
+    @apply text-[10px] font-medium uppercase tracking-[0.06em] leading-none;
+  }
+  .bottom-nav-item.is-active { @apply text-accent-dark; }
+  /* The active tab is marked by an underline at the bar's top edge, matching
+     the rest of the site's underline-on-current treatment. */
+  .bottom-nav-item.is-active::before {
+    content: '';
+    @apply absolute inset-x-[22%] top-0 h-[3px] rounded-b-full bg-accent-dark;
+  }
+  .bottom-nav-badge {
+    @apply absolute -right-1.5 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-accent-dark px-1 text-[10px] font-bold leading-none text-white;
+  }
+  /* Desktop keeps the header nav; the bar would only duplicate it. */
+  @media (min-width: 768px) { .bottom-nav { display: none; } }
+
+  /* Page padding so fixed-bottom content never covers the last row. Pages that
+     already end in a .buybar opt out by setting the class on their own. */
+  .has-bottom-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 768px) { .has-bottom-nav { padding-bottom: 0; } }
+
+  /* ---- Gradient surfaces ----
+     Same ramp and direction as .btn-cta, which every other page already uses
+     for its primary action — these screens must not read as a different brand
+     from the rest of the site. --color-pinksoft is likewise the tint the cart
+     and account surfaces already sit on. */
+  .grad-brand {
+    background-image: linear-gradient(270deg, var(--color-accent-dark) 7%, var(--color-accent) 100%);
+  }
+  .grad-soft {
+    background-color: var(--color-pinksoft);
+  }
+
+  /* ---- App-style cards ---- */
+  .app-card {
+    @apply rounded-2xl border border-line bg-white p-4;
+    box-shadow: 0 1px 2px rgba(31, 29, 29, .04), 0 4px 16px rgba(31, 29, 29, .05);
+  }
+  .app-card-flat { @apply rounded-2xl border border-line bg-white p-4; }
+
+  /* ---- Icon tile that fronts a menu row or an upload card ---- */
+  .icon-tile {
+    @apply grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-pinksoft text-accent-dark;
+  }
+  .icon-tile > svg { @apply h-[22px] w-[22px]; }
+  .icon-tile-gold { @apply bg-gold-light text-gold-hover; }
+
+  /* ---- Tappable menu row: icon, label + note, chevron ---- */
+  .menu-row {
+    @apply flex min-h-[64px] w-full items-center gap-3 rounded-2xl border border-line bg-white px-3.5 py-3 text-left transition-colors active:bg-pinksoft;
+  }
+  .menu-row-title { @apply text-[15px] font-bold leading-tight text-heading; }
+  .menu-row-note { @apply mt-0.5 text-[12px] leading-tight text-muted; }
+  .menu-row-chev { @apply ml-auto h-5 w-5 shrink-0 text-muted; }
+  /* The one highlighted row (Sell Your Jewellery) — tinted, brand-bordered,
+     on the same pinksoft the rest of the site tints with. */
+  .menu-row-featured { @apply border-accent/45 bg-pinksoft; }
+  .menu-row-featured .menu-row-chev { @apply text-white; }
+  .menu-row-featured-chev {
+    @apply ml-auto grid h-7 w-7 shrink-0 place-items-center rounded-full text-white;
+    background-color: var(--color-accent-dark);
+  }
+
+  /* ---- Small pill used for badges like "Premium Member" / "Get an Offer" ---- */
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold leading-none;
+  }
+  .pill-brand { @apply bg-pinksoft text-accent-dark; }
+  .pill-gold { @apply bg-gold-light text-gold-hover; }
+
+  /* ---- Trust strip: three short reassurance columns under a form ---- */
+  .trust-strip {
+    @apply grid grid-cols-3 gap-2 rounded-2xl border border-line bg-white px-2 py-3.5;
+  }
+  .trust-strip > * + * { @apply border-l border-line; }
+  .trust-col { @apply flex flex-col items-center px-1.5 text-center; }
+  .trust-col-icon { @apply mb-1.5 grid h-9 w-9 place-items-center rounded-full bg-pinksoft text-accent-dark; }
+  .trust-col-icon > svg { @apply h-[18px] w-[18px]; }
+  .trust-col-title { @apply text-[11px] font-bold leading-tight text-heading; }
+  .trust-col-note { @apply mt-0.5 text-[10px] leading-tight text-muted; }
+}
+
+/* ---- Image lightbox — zoom cursor on clickable product images ---- */
+.card-scroller__img,
+.pdp-slide img,
+.pdp-main img,
+[data-lightbox] {
+  cursor: zoom-in;
 }

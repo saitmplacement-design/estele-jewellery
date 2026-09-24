@@ -1,24 +1,26 @@
 import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 
+// Build CSS/JS from resources/ → public/theme/ so Laravel serves them via asset('theme/...')
+// Run: npm run build  (inside backend/)
 export default defineConfig({
-    plugins: [
-        laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
-            refresh: true,
-            fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
-            ],
-        }),
-        tailwindcss(),
-    ],
-    server: {
-        watch: {
-            ignored: ['**/storage/framework/views/**'],
-        },
+  plugins: [tailwindcss()],
+  build: {
+    outDir: 'public/theme',
+    emptyOutDir: true,
+    manifest: false,
+    // CSS minification disabled: Lightning CSS collapses compound selectors
+    // that share suffixes (e.g. .page-loader.is-active and .carousel__dot.is-active)
+    // into a bare .is-active, silently breaking all is-active toggles sitewide.
+    cssMinify: false,
+    rollupOptions: {
+      input: {
+        app: 'resources/js/app.js',
+      },
+      output: {
+        entryFileNames: 'app.js',
+        assetFileNames: '[name][extname]',
+      },
     },
+  },
 });
