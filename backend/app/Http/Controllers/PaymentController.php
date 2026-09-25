@@ -59,6 +59,47 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Keeps an online order whose payment won't go through (gateway down,
+     * card keeps failing) as Cash on Delivery instead, so the customer is
+     * never stuck on the payment page. Razorpay is asked first: money that
+     * was actually taken marks the order paid rather than switching it, so
+     * nobody pays twice; and while a Razorpay order exists that can't be
+     * checked, nothing is switched on a guess.
+     */
+    public function switchToCod(Order $order)
+    {
+        $this->authorizeOwnOrder($order);
+
+        if ($order->payment_method !== 'razorpay' || $order->status !== 'placed' || ! in_array($order->payment_status, ['pending', 'failed'], true)) {
+            return redirect()->route('checkout.confirmation', $order);
+        }
+
+        if (filled($order->razorpay_order_id)) {
+            try {
+                $state = $this->payments->syncFromGateway($order);
+            } catch (\Throwable $e) {
+                report($e);
+
+                return redirect()->route('payment.show', $order)
+                    ->with('error', 'We couldn\'t confirm whether your online payment went through, so the order is unchanged. Please try again in a minute.');
+            }
+
+            if ($state === 'paid') {
+                return redirect()->route('checkout.confirmation', $order)->with('success', 'Your online payment was received. Order placed successfully.');
+            }
+
+            if ($state === 'authorized') {
+                return redirect()->route('payment.show', $order)
+                    ->with('error', 'Your online payment is still being processed. Please wait a minute before choosing another way to pay.');
+            }
+        }
+
+        $order->update(['payment_method' => 'cod', 'payment_status' => 'pending']);
+
+        return redirect()->route('checkout.confirmation', $order)->with('success', 'Order placed. You\'ll pay by Cash on Delivery.');
+    }
+
     public function callback(Order $order, Request $request)
     {
         $validated = $request->validate([

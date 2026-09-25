@@ -12,6 +12,8 @@
     <a class="btn-cta w-auto px-8 text-[14px]" href="{{ route('payment.show', $order) }}">
       Try Again
     </a>
+
+    @include('payment._pay-cod-instead')
   </div>
 
 @endsection

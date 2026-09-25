@@ -31,6 +31,8 @@
       Pay Now
     </button>
 
+    @include('payment._pay-cod-instead')
+
     <form id="razorpay-callback-form" action="{{ route('payment.callback', $order) }}" method="post" class="hidden">
       @csrf
       <input type="hidden" name="razorpay_order_id">
@@ -61,37 +63,44 @@
 
           payBtn.disabled = true;
 
-          var rzp = new Razorpay({
-            key: @json($razorpayKeyId),
-            amount: @json($amountPaise),
-            currency: 'INR',
-            name: @json($siteSettings['site_name'] ?? 'Estele'),
-            description: @json('Order '.$order->order_number),
-            order_id: @json($order->razorpay_order_id),
-            prefill: {
-              name: @json($order->customer_name),
-              email: @json($order->customer_email),
-              contact: @json($order->customer_phone),
-            },
-            handler: function (response) {
-              var form = document.getElementById('razorpay-callback-form');
-              form.querySelector('[name="razorpay_order_id"]').value = response.razorpay_order_id;
-              form.querySelector('[name="razorpay_payment_id"]').value = response.razorpay_payment_id;
-              form.querySelector('[name="razorpay_signature"]').value = response.razorpay_signature;
-              payBtn.textContent = 'Confirming payment…';
-              form.submit();
-            },
-            modal: {
-              ondismiss: function () { payBtn.disabled = false; },
-            },
-          });
+          // A rejected key/order (e.g. a mistyped key) makes Razorpay throw
+          // here; without this the button stayed disabled and nothing happened.
+          try {
+            var rzp = new Razorpay({
+              key: @json($razorpayKeyId),
+              amount: @json($amountPaise),
+              currency: 'INR',
+              name: @json($siteSettings['site_name'] ?? 'Estele'),
+              description: @json('Order '.$order->order_number),
+              order_id: @json($order->razorpay_order_id),
+              prefill: {
+                name: @json($order->customer_name),
+                email: @json($order->customer_email),
+                contact: @json($order->customer_phone),
+              },
+              handler: function (response) {
+                var form = document.getElementById('razorpay-callback-form');
+                form.querySelector('[name="razorpay_order_id"]').value = response.razorpay_order_id;
+                form.querySelector('[name="razorpay_payment_id"]').value = response.razorpay_payment_id;
+                form.querySelector('[name="razorpay_signature"]').value = response.razorpay_signature;
+                payBtn.textContent = 'Confirming payment…';
+                form.submit();
+              },
+              modal: {
+                ondismiss: function () { payBtn.disabled = false; },
+              },
+            });
 
-          rzp.on('payment.failed', function (response) {
-            showError('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'please try again.') + ' You can try again with the same or another method.');
+            rzp.on('payment.failed', function (response) {
+              showError('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'please try again.') + ' You can try again with the same or another method.');
+              payBtn.disabled = false;
+            });
+
+            rzp.open();
+          } catch (e) {
             payBtn.disabled = false;
-          });
-
-          rzp.open();
+            showError('The payment window could not be opened. Please try again, or choose Cash on Delivery below.');
+          }
         }
 
         payBtn.addEventListener('click', openCheckout);

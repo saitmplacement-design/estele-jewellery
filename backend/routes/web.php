@@ -343,6 +343,10 @@ Route::post('/payment/{order:order_number}/callback', [PaymentController::class,
     ->name('payment.callback')
     ->middleware('throttle:20,1');
 
+Route::post('/payment/{order:order_number}/cod', [PaymentController::class, 'switchToCod'])
+    ->name('payment.cod')
+    ->middleware('throttle:10,1');
+
 Route::post('/webhooks/razorpay', [PaymentController::class, 'webhook'])
     ->name('webhooks.razorpay');
 

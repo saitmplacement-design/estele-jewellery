@@ -304,13 +304,191 @@ class VerifyPaymentFlowTest extends TestCase
         });
     }
 
+    // ---- Never stuck: visible errors, COD fallback, diagnostics ----------------------
+
+    public function test_an_unexpected_checkout_error_is_shown_instead_of_a_silent_reload(): void
+    {
+        $user = User::factory()->create(['wallet_balance' => 100]);
+        [$cookieName, $cookieValue] = $this->seedWebCart($user);
+        $this->mock(\App\Services\OldJewellery\OldJewelleryWalletSpendService::class)
+            ->shouldReceive('applySpend')->andThrow(new \RuntimeException('SQLSTATE[HY000]: General error'));
+
+        $response = $this->withUnencryptedCookie($cookieName, $cookieValue)
+            ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+            ->post('/checkout', $this->webCheckoutFields(['payment_method' => 'cod', 'wallet_amount' => 50]));
+
+        $response->assertRedirect(route('checkout.index'));
+        $this->assertStringContainsString('couldn\'t place your order', (string) $response->getSession()->get('error'));
+        $this->assertFalse(optional($response->getSession()->get('errors'))->has('wallet_amount') ?? false);
+        $this->assertSame(0, Order::count(), 'the failed order is rolled back');
+        $this->assertSame('100.00', $user->fresh()->wallet_balance);
+    }
+
+    public function test_a_wallet_problem_is_shown_on_screen(): void
+    {
+        $user = User::factory()->create(['wallet_balance' => 100]);
+        [$cookieName, $cookieValue] = $this->seedWebCart($user);
+        $this->mock(\App\Services\OldJewellery\OldJewelleryWalletSpendService::class)
+            ->shouldReceive('applySpend')->andThrow(new \DomainException('Wallet balance is insufficient for this debit.'));
+
+        $response = $this->withUnencryptedCookie($cookieName, $cookieValue)
+            ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+            ->post('/checkout', $this->webCheckoutFields(['payment_method' => 'cod', 'wallet_amount' => 50]));
+
+        $response->assertRedirect(route('checkout.index'));
+        $this->assertSame('Wallet balance is insufficient for this debit.', $response->getSession()->get('error'));
+        $this->assertSame(0, Order::count());
+    }
+
+    public function test_payment_unavailable_page_offers_cash_on_delivery(): void
+    {
+        $this->enableRazorpay(Http::response(['error' => ['description' => 'Authentication failed']], 401));
+        $user = User::factory()->create();
+        $order = $this->makeOrder(['user_id' => $user->id, 'razorpay_order_id' => null]);
+
+        $this->actingAs($user)->get(route('payment.show', $order))
+            ->assertOk()
+            ->assertSee('Payment temporarily unavailable')
+            ->assertSee('Pay with Cash on Delivery instead')
+            ->assertSee(route('payment.cod', $order), false);
+    }
+
+    public function test_customer_can_switch_a_stuck_online_order_to_cash_on_delivery(): void
+    {
+        $user = User::factory()->create();
+        $order = $this->makeOrder(['user_id' => $user->id, 'razorpay_order_id' => null, 'payment_status' => 'failed']);
+
+        $this->actingAs($user)->post(route('payment.cod', $order))
+            ->assertRedirect(route('checkout.confirmation', $order));
+
+        $order->refresh();
+        $this->assertSame('cod', $order->payment_method);
+        $this->assertSame('pending', $order->payment_status);
+        $this->assertSame('placed', $order->status);
+
+        // Now a normal COD order: the admin can accept it and the cleanup ignores it.
+        $order->update(['status' => 'accepted']);
+        $this->assertSame('accepted', $order->fresh()->status);
+    }
+
+    public function test_switching_to_cod_records_the_payment_instead_when_razorpay_already_has_it(): void
+    {
+        $this->enableRazorpay();
+        Http::fake(['*/v1/orders/order_abc/payments' => Http::response(['items' => [['id' => 'pay_done', 'status' => 'captured']]])]);
+        $user = User::factory()->create();
+        $order = $this->makeOrder(['user_id' => $user->id, 'razorpay_order_id' => 'order_abc']);
+
+        $this->actingAs($user)->post(route('payment.cod', $order))
+            ->assertRedirect(route('checkout.confirmation', $order));
+
+        $order->refresh();
+        $this->assertSame('razorpay', $order->payment_method);
+        $this->assertSame('paid', $order->payment_status);
+    }
+
+    public function test_switching_to_cod_waits_when_razorpay_cannot_be_checked(): void
+    {
+        $this->enableRazorpay();
+        Http::fake(['*/v1/orders/order_abc/payments' => Http::response('down', 503)]);
+        $user = User::factory()->create();
+        $order = $this->makeOrder(['user_id' => $user->id, 'razorpay_order_id' => 'order_abc']);
+
+        $this->actingAs($user)->post(route('payment.cod', $order))
+            ->assertRedirect(route('payment.show', $order));
+
+        $this->assertSame('razorpay', $order->fresh()->payment_method);
+    }
+
+    public function test_only_the_owner_can_switch_an_order_to_cod(): void
+    {
+        $order = $this->makeOrder(['user_id' => User::factory()->create()->id]);
+
+        $this->actingAs(User::factory()->create())->post(route('payment.cod', $order))->assertNotFound();
+        $this->assertSame('razorpay', $order->fresh()->payment_method);
+    }
+
+    public function test_payment_page_offers_cash_on_delivery_too(): void
+    {
+        $this->enableRazorpay();
+        Http::fake(['*/v1/orders/order_abc/payments' => Http::response(['items' => []])]);
+        $user = User::factory()->create();
+        $order = $this->makeOrder(['user_id' => $user->id, 'razorpay_order_id' => 'order_abc']);
+
+        $this->actingAs($user)->get(route('payment.show', $order))
+            ->assertOk()
+            ->assertSee('Pay with Cash on Delivery instead');
+    }
+
+    public function test_razorpay_check_reports_a_working_setup(): void
+    {
+        $this->enableRazorpay();
+
+        $this->artisan('razorpay:check')
+            ->expectsOutputToContain('payment_provider setting: razorpay')
+            ->expectsOutputToContain('Razorpay accepted a test order (order_fake123)')
+            ->assertSuccessful();
+    }
+
+    public function test_razorpay_check_explains_wrong_keys(): void
+    {
+        $this->enableRazorpay(Http::response(['error' => ['description' => 'Authentication failed']], 401));
+
+        $this->artisan('razorpay:check')
+            ->expectsOutputToContain('Razorpay refused the test order (HTTP 401): Authentication failed')
+            ->expectsOutputToContain('key id and key secret don\'t match')
+            ->assertFailed();
+    }
+
+    public function test_razorpay_check_explains_missing_setup(): void
+    {
+        config(['services.razorpay.key_id' => null, 'services.razorpay.key_secret' => null]);
+
+        $this->artisan('razorpay:check')
+            ->expectsOutputToContain('Online payment is switched off')
+            ->expectsOutputToContain('RAZORPAY_KEY_ID and/or RAZORPAY_KEY_SECRET are missing')
+            ->assertFailed();
+    }
+
     // ---- Helpers ------------------------------------------------------------------
 
-    private function enableRazorpay(): void
+    private function webCheckoutFields(array $overrides = []): array
+    {
+        return array_merge([
+            'customer_first_name' => 'Asha',
+            'customer_last_name' => 'Rao',
+            'customer_email' => 'asha@example.com',
+            'customer_phone' => '9876543210',
+            'shipping_address_line1' => '12 MG Road',
+            'shipping_city' => 'Hyderabad',
+            'shipping_state' => 'Telangana',
+            'shipping_postal_code' => '500001',
+            'payment_method' => 'cod',
+        ], $overrides);
+    }
+
+    /** @return array{0: string, 1: string} [sessionCookieName, sessionCookieValue] */
+    private function seedWebCart(User $user): array
+    {
+        $this->actingAs($user);
+        config(['session.driver' => 'database']);
+
+        $first = $this->get('/cart');
+        $name = config('session.cookie');
+        $value = collect($first->headers->getCookies())->first(fn ($c) => $c->getName() === $name)->getValue();
+        $sessionId = \Illuminate\Support\Facades\DB::table('sessions')->orderByDesc('last_activity')->value('id');
+
+        Cart::firstOrCreate(['session_id' => $sessionId])
+            ->items()->create(['product_id' => $this->makeProduct(500)->id, 'quantity' => 1]);
+
+        return [$name, $value];
+    }
+
+    /** Http fakes match first-registered-first, so a test wanting a different create-order reply passes it here. */
+    private function enableRazorpay(?\GuzzleHttp\Promise\PromiseInterface $createOrderResponse = null): void
     {
         Setting::updateOrCreate(['key' => 'payment_provider'], ['value' => 'razorpay']);
         config(['services.razorpay.key_id' => 'rzp_test_fake', 'services.razorpay.key_secret' => 'fake_secret']);
-        Http::fake(['*/v1/orders' => Http::response(['id' => 'order_fake123', 'amount' => 1, 'currency' => 'INR'])]);
+        Http::fake(['*/v1/orders' => $createOrderResponse ?? Http::response(['id' => 'order_fake123', 'amount' => 1, 'currency' => 'INR'])]);
     }
 
     /** @return array{0: User, 1: string} */

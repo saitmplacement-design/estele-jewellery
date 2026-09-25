@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\WalletPaymentException;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
@@ -319,15 +320,14 @@ class CheckoutController extends Controller
                         // WalletService::debit() throws \DomainException on insufficient
                         // balance. Should never actually happen here — $walletAmountUsed
                         // is already clamped to the live wallet_balance above — but if it
-                        // somehow does, it must surface as a field error on the checkout
-                        // form rather than the generic cart-index redirect the stock-check
-                        // \DomainExceptions below use. Re-thrown as \RuntimeException so
-                        // the outer catch can tell the two apart.
+                        // somehow does, it must surface on the checkout form rather than
+                        // the generic cart-index redirect the stock-check
+                        // \DomainExceptions below use, hence its own exception type.
                         try {
                             app(\App\Services\OldJewellery\OldJewelleryWalletSpendService::class)
                                 ->applySpend(auth()->user(), $walletAmountUsed, $order);
                         } catch (\DomainException $e) {
-                            throw new \RuntimeException($e->getMessage(), previous: $e);
+                            throw new WalletPaymentException($e->getMessage(), previous: $e);
                         }
 
                         $order->update([
@@ -342,11 +342,19 @@ class CheckoutController extends Controller
 
                 return $order;
             }, 3);
-        } catch (\RuntimeException $e) {
+        } catch (WalletPaymentException $e) {
             return redirect()->route('checkout.index')->withInput()
-                ->withErrors(['wallet_amount' => $e->getMessage()]);
+                ->withErrors(['wallet_amount' => $e->getMessage()])
+                ->with('error', $e->getMessage());
         } catch (\DomainException $e) {
             return redirect()->route('cart.index')->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            // Anything else (a database error, say) rolled the whole order
+            // back. Say so on screen rather than silently reloading checkout.
+            report($e);
+
+            return redirect()->route('checkout.index')->withInput()
+                ->with('error', 'We couldn\'t place your order just now. Please try again in a moment, and contact us if it keeps happening.');
         }
 
         if ($order->payment_status === 'paid' || $order->payment_method !== 'razorpay') {
