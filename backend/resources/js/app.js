@@ -1470,89 +1470,444 @@ import '../css/app.css';
   })();
 
   /* ------------------------------------------------------------------------
-     SUPPORT CHAT — vertical right-edge tab + slide-out panel.
-     Front-end only: canned auto-replies, no backend.
+     SUPPORT CHAT — floating bubble + chat window (layouts/app.blade.php).
+     Front-end only: scripted replies, no backend and no live agent. Every
+     message shows its own time ("Estele Assistant • 12:13 PM" / "Sent •
+     12:13 PM") under a day separator ("Today • 12:12 PM"). The conversation
+     is kept in sessionStorage for this tab, so it survives page changes.
      ---------------------------------------------------------------------- */
   (function () {
-    var tabBtn   = document.getElementById('chat-tab-btn');
-    var panel    = document.getElementById('chat-full-panel');
-    var closeBtn = document.getElementById('chat-close-btn');
-    var log      = panel && $('[data-chat-log]', panel);
-    var form     = panel && $('[data-chat-form]', panel);
-    var input    = panel && document.getElementById('chat-input');
-
+    var tabBtn = document.getElementById('chat-tab-btn');
+    var panel = document.getElementById('chat-full-panel');
     if (!tabBtn || !panel) return;
 
-    var REPLIES = {
-      'track my order': 'You can track your order from your account page, or share your order number here and we will check it for you.',
-      'return & exchange': 'We accept returns and exchanges within 7 days of delivery, as long as the item is unused and in its original packaging.',
-      'size guide': 'Most of our necklaces are adjustable. Tell us the piece you are looking at and we will share exact measurements.'
-    };
+    var closeBtn = document.getElementById('chat-close-btn');
+    var scroller = $('[data-chat-scroll]', panel);
+    var log = $('[data-chat-log]', panel);
+    var form = $('[data-chat-form]', panel);
+    var input = document.getElementById('chat-input');
+    var sendBtn = $('.chatw__send', panel);
+    var menuBtn = $('[data-chat-menu-btn]', panel);
+    var menu = $('[data-chat-menu]', panel);
 
-    var MSG_BASE = 'max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed';
-    var MSG_IN   = MSG_BASE + ' self-start border border-line bg-white';
-    var MSG_OUT  = MSG_BASE + ' self-end bg-accent text-white';
+    var cfg = panel.dataset;
+    var AGENT = cfg.agent;
+    var STORE_KEY = 'estele-chat';
+    var MAX_MESSAGES = 80;
+    var CHIPS = ['Track my order', 'Returns & exchange', 'Size guide', 'Talk to our team'];
 
-    function addMsg(text, dir) {
-      if (!log) return;
-      var p = document.createElement('p');
-      p.className = dir === 'out' ? MSG_OUT : MSG_IN;
-      p.textContent = text;
-      log.appendChild(p);
-      log.scrollTop = log.scrollHeight;
+    var state = load();
+    var queue = [];
+    var busy = false;
+    var replyTimer = null;
+    var lastDay = null;
+    var chipsEl = null;
+
+    function load() {
+      try {
+        var saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
+        if (saved && Array.isArray(saved.messages) && saved.messages.length) return saved;
+      } catch (e) { /* private mode / blocked storage: start fresh */ }
+      return null;
     }
 
-    function reply(question) {
-      var key = question.trim().toLowerCase();
-      var text = REPLIES[key] ||
-        'Thanks for reaching out. Our team will get back to you shortly. ' +
-        'For anything urgent, call +91 90000 00000.';
-      setTimeout(function () { addMsg(text, 'in'); }, 600);
+    function save() {
+      try { sessionStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+    }
+
+    function forget() {
+      try { sessionStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
+    }
+
+    /* ---- Time labels ---------------------------------------------------- */
+    function timeLabel(ts) {
+      return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function dayKey(ts) {
+      var d = new Date(ts);
+      return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    }
+
+    function dayLabel(ts) {
+      var now = new Date();
+      if (dayKey(ts) === dayKey(now)) return 'Today';
+      var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      if (dayKey(ts) === dayKey(yesterday)) return 'Yesterday';
+      return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    /* ---- Rendering -------------------------------------------------------- */
+    function el(tag, cls, text) {
+      var node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
+    function avatar(extraClass) {
+      var img = el('img', 'chatw__avatar' + (extraClass ? ' ' + extraClass : ''));
+      img.src = cfg.avatar;
+      img.alt = '';
+      return img;
+    }
+
+    var typingRow = el('div', 'chatw__row chatw__row--bot chatw__row--typing');
+    typingRow.setAttribute('aria-hidden', 'true');
+    typingRow.appendChild(avatar());
+    var dots = el('div', 'chatw__typing');
+    dots.appendChild(el('span'));
+    dots.appendChild(el('span'));
+    dots.appendChild(el('span'));
+    typingRow.appendChild(dots);
+
+    function scrollToEnd() {
+      scroller.scrollTop = scroller.scrollHeight;
+    }
+
+    /* Bot text is only ever written by this script. Links are real anchors
+       built from {label, href}, and all text goes in via textContent. */
+    function fillBubble(bubble, msg) {
+      bubble.textContent = msg.text;
+      (msg.links || []).forEach(function (link) {
+        bubble.appendChild(document.createElement('br'));
+        var a = el('a', null, link.label);
+        a.href = link.href;
+        bubble.appendChild(a);
+      });
+    }
+
+    function renderMsg(msg, isLast) {
+      if (msg.type === 'join') {
+        var join = el('p', 'chatw__join');
+        join.appendChild(avatar('chatw__avatar--xs'));
+        join.appendChild(document.createTextNode(AGENT + ' joined • ' + timeLabel(msg.ts)));
+        return join;
+      }
+
+      var isBot = msg.type === 'bot';
+      var row = el('div', 'chatw__row ' + (isBot ? 'chatw__row--bot' : 'chatw__row--user'));
+      if (isBot) row.appendChild(avatar());
+
+      var stack = el('div', 'chatw__stack');
+      var bubble = el('div', 'chatw__bubble');
+      fillBubble(bubble, msg);
+      stack.appendChild(bubble);
+      stack.appendChild(el('p', 'chatw__meta', (isBot ? AGENT : 'Sent') + ' • ' + timeLabel(msg.ts)));
+
+      row.appendChild(stack);
+
+      /* Quick replies only under the newest message; they go once the
+         conversation moves on. Kept outside the row so the avatar stays
+         level with the bubble. */
+      if (!isBot || !isLast || !msg.chips) return row;
+
+      chipsEl = el('div', 'chatw__chips');
+      msg.chips.forEach(function (label) {
+        var chip = el('button', 'chatw__chip', label);
+        chip.type = 'button';
+        chip.addEventListener('click', function () { handleUserText(label); });
+        chipsEl.appendChild(chip);
+      });
+      var group = document.createDocumentFragment();
+      group.appendChild(row);
+      group.appendChild(chipsEl);
+      return group;
+    }
+
+    function append(msg, isLast) {
+      if (chipsEl) {
+        chipsEl.remove();
+        chipsEl = null;
+      }
+      var day = dayKey(msg.ts);
+      if (day !== lastDay) {
+        log.appendChild(el('p', 'chatw__sep', dayLabel(msg.ts) + ' • ' + timeLabel(msg.ts)));
+        lastDay = day;
+      }
+      log.appendChild(renderMsg(msg, isLast));
+    }
+
+    function renderAll() {
+      log.innerHTML = '';
+      lastDay = null;
+      chipsEl = null;
+      state.messages.forEach(function (msg, i) {
+        append(msg, i === state.messages.length - 1);
+      });
+      if (busy) log.appendChild(typingRow);
+      scrollToEnd();
+    }
+
+    function push(type, text, extra) {
+      var msg = { type: type, text: text, ts: Date.now() };
+      if (extra && extra.links) msg.links = extra.links;
+      if (extra && extra.chips) msg.chips = extra.chips;
+      state.messages.push(msg);
+
+      if (state.messages.length > MAX_MESSAGES) {
+        state.messages.splice(0, state.messages.length - MAX_MESSAGES);
+        save();
+        renderAll();
+        return;
+      }
+
+      save();
+      append(msg, true);
+      if (busy) log.appendChild(typingRow);
+      scrollToEnd();
+    }
+
+    /* Replies queue up so two quick messages each get their answer, in
+       order, each after a short "typing…" pause. */
+    function botSay(text, extra) {
+      queue.push({ text: text, extra: extra });
+      if (!busy) nextReply();
+    }
+
+    function nextReply() {
+      var item = queue.shift();
+      if (!item) {
+        busy = false;
+        typingRow.remove();
+        return;
+      }
+      busy = true;
+      log.appendChild(typingRow);
+      scrollToEnd();
+      replyTimer = setTimeout(function () {
+        push('bot', item.text, item.extra);
+        nextReply();
+      }, 700 + Math.min(item.text.length * 6, 900));
+    }
+
+    function stopReplies() {
+      clearTimeout(replyTimer);
+      queue = [];
+      busy = false;
+      typingRow.remove();
+    }
+
+    /* ---- Conversation ----------------------------------------------------- */
+    var GREETING = /^(hi+|hey+|hello+|helo|hlo|namaste|namaskar|hola|yo|good\s+(morning|afternoon|evening))[\s!.,]*$/i;
+    var LEADING_GREETING = /^(hi+|hey+|hello+|helo|hlo|namaste|namaskar)\b[\s!.,]*/i;
+    var NAME_PREFIX = /^(my\s+name\s+is|my\s+name's|name\s+is|i\s+am|i'm|im|this\s+is|it's|its|call\s+me)\s+/i;
+    var THANKS = /^(ok(ay)?|thanks?|thank\s*you|thanku|thx|ty|great|cool|nice|bye|goodbye)\b/i;
+
+    function contactLinks() {
+      return [
+        { label: '📞 ' + cfg.phone, href: cfg.phoneHref },
+        { label: '✉️ ' + cfg.email, href: 'mailto:' + cfg.email }
+      ];
+    }
+
+    /* First match wins: returns come before orders so "cancel my order"
+       gets the returns answer, not the order-status one. */
+    var INTENTS = [
+      {
+        test: /\b(returns?|exchanges?|refunds?|replace(ment)?|cancel(lation)?)\b/i,
+        reply: function () {
+          return ['We accept returns and exchanges within 7 days of delivery, as long as the item is unused and in its original packaging. You can raise a request from the order in My Account.', { links: [{ label: 'View my orders', href: cfg.ordersUrl }] }];
+        }
+      },
+      {
+        test: /\b(track|tracking|orders?|deliver(y|ed)?|shipping|shipped|dispatch(ed)?|courier|parcel)\b/i,
+        reply: function () {
+          return ['You can see the status of every order in My Account → My Orders.', { links: [{ label: 'View my orders', href: cfg.ordersUrl }] }];
+        }
+      },
+      {
+        test: /\b(sizes?|length|adjustable|fit|measure(ment)?s?)\b/i,
+        reply: function () {
+          return ['Most of our necklaces are adjustable. Tell us the piece you are looking at and we will share exact measurements.'];
+        }
+      },
+      {
+        test: /\b(talk|call|contact|support|human|agent|person|team|phone|number|email|mail|whatsapp)\b/i,
+        reply: function () {
+          return ['You can reach our team (' + cfg.hours + '):', { links: contactLinks() }];
+        }
+      }
+    ];
+
+    function matchIntent(text) {
+      for (var i = 0; i < INTENTS.length; i++) {
+        if (INTENTS[i].test.test(text)) return INTENTS[i].reply();
+      }
+      return null;
+    }
+
+    function extractName(text) {
+      var t = text.trim().replace(LEADING_GREETING, '').replace(NAME_PREFIX, '').replace(/[.!,]+$/, '').trim();
+      if (!t || /[0-9@#$%^&*()_+=<>?\/\\|{}\[\]~`"]/.test(t)) return null;
+      var words = t.split(/\s+/);
+      if (words.length > 3 || t.length > 40) return null;
+      return words.map(function (w) {
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      }).join(' ');
+    }
+
+    function withName(prefix) {
+      return state.name ? prefix + ', ' + state.name.split(' ')[0] : prefix;
+    }
+
+    function answer(reply) {
+      botSay(reply[0], reply[1]);
+    }
+
+    function fallback() {
+      botSay('Thanks for your message! I can help with orders, returns and sizing. For anything else, our team is happy to help (' + cfg.hours + '):', { links: contactLinks(), chips: CHIPS });
+    }
+
+    function handleUserText(text) {
+      text = text.trim();
+      if (!text) return;
+      push('user', text);
+
+      var intent = matchIntent(text);
+
+      if (!state.name && !state.nameSkipped) {
+        if (intent) {
+          state.nameSkipped = true;
+          save();
+          answer(intent);
+          return;
+        }
+        if (GREETING.test(text) || THANKS.test(text)) {
+          botSay('Hi there! May I know your name, please?');
+          return;
+        }
+        var name = extractName(text);
+        if (name) {
+          state.name = name;
+          save();
+          botSay('Nice to meet you, ' + name + '! 😊\nHow can I help you today?', { chips: CHIPS });
+          return;
+        }
+        if (text.split(/\s+/).length <= 3) {
+          botSay('Sorry, I didn\'t catch that. May I know your name, please?');
+          return;
+        }
+        state.nameSkipped = true;
+        save();
+        fallback();
+        return;
+      }
+
+      if (intent) {
+        answer(intent);
+      } else if (GREETING.test(text)) {
+        botSay(withName('Hello again') + '! How can I help you today?', { chips: CHIPS });
+      } else if (THANKS.test(text) && text.split(/\s+/).length <= 4) {
+        botSay(withName('You\'re welcome') + '! Is there anything else I can help you with?', { chips: CHIPS });
+      } else {
+        fallback();
+      }
+    }
+
+    function start() {
+      stopReplies();
+      state = { name: null, nameSkipped: false, messages: [] };
+      log.innerHTML = '';
+      lastDay = null;
+      chipsEl = null;
+      push('join', '');
+      botSay('Hello! Greetings from ' + cfg.site + ' 👋\nMay I know your name please?');
+    }
+
+    /* ---- Window ------------------------------------------------------------ */
+    /* Phones: keep the window above the on-screen keyboard, whose height
+       is the part of the layout viewport the visual viewport no longer
+       covers. */
+    function fitKeyboard() {
+      var vv = window.visualViewport;
+      if (!vv) return;
+      var keyboard = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      panel.style.setProperty('--chat-kb', keyboard + 'px');
+      if (keyboard) scrollToEnd();
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', fitKeyboard);
+      window.visualViewport.addEventListener('scroll', fitKeyboard);
+    }
+
+    function isOpen() {
+      return panel.classList.contains('is-open');
     }
 
     function openChat() {
+      closeMenu();
       panel.hidden = false;
-      requestAnimationFrame(function () {
-        panel.classList.add('is-open');
-      });
+      requestAnimationFrame(function () { panel.classList.add('is-open'); });
       tabBtn.setAttribute('aria-expanded', 'true');
-      if (input) setTimeout(function () { input.focus(); }, 320);
+      if (!state) start(); else renderAll();
+      fitKeyboard();
+      /* Don't pop the keyboard up on a phone just for opening the window. */
+      if (window.matchMedia('(min-width: 768px)').matches) {
+        setTimeout(function () { input.focus({ preventScroll: true }); }, 250);
+      }
     }
 
     function closeChat() {
+      closeMenu();
       panel.classList.remove('is-open');
       tabBtn.setAttribute('aria-expanded', 'false');
-      setTimeout(function () { panel.hidden = true; }, 300);
+      input.blur();
+      setTimeout(function () {
+        if (!isOpen()) panel.hidden = true;
+      }, 250);
+    }
+
+    function closeMenu() {
+      menu.hidden = true;
+      menuBtn.setAttribute('aria-expanded', 'false');
     }
 
     tabBtn.addEventListener('click', function () {
-      if (panel.hidden || !panel.classList.contains('is-open')) {
-        openChat();
-      } else {
-        closeChat();
-      }
+      if (isOpen()) closeChat(); else openChat();
+    });
+    closeBtn.addEventListener('click', closeChat);
+
+    menuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var willOpen = menu.hidden;
+      menu.hidden = !willOpen;
+      menuBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     });
 
-    if (closeBtn) closeBtn.addEventListener('click', closeChat);
-
-    $$('[data-chat-quick]', panel).forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        addMsg(btn.textContent.trim(), 'out');
-        reply(btn.textContent);
-      });
+    $('[data-chat-restart]', panel).addEventListener('click', function () {
+      closeMenu();
+      forget();
+      start();
     });
 
-    if (form) form.addEventListener('submit', function (e) {
+    $('[data-chat-end]', panel).addEventListener('click', function () {
+      stopReplies();
+      forget();
+      state = null;
+      closeChat();
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!menu.hidden && !menu.contains(e.target)) closeMenu();
+    });
+
+    input.addEventListener('input', function () {
+      sendBtn.disabled = !input.value.trim();
+    });
+
+    form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var text = (input && input.value || '').trim();
-      if (!text) return;
-      addMsg(text, 'out');
-      reply(text);
-      form.reset();
+      var text = input.value;
+      input.value = '';
+      sendBtn.disabled = true;
+      handleUserText(text);
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && panel.classList.contains('is-open')) closeChat();
+      if (e.key !== 'Escape' || !isOpen()) return;
+      if (!menu.hidden) closeMenu(); else closeChat();
     });
   })();
 
@@ -2234,6 +2589,25 @@ import '../css/app.css';
     sync();
   });
 
+  // Phone fields elsewhere (checkout contact, address book): letters and
+  // symbols are dropped as they're typed or pasted. Capped by data-max-digits
+  // rather than maxlength, because maxlength would cut a pasted
+  // "+91 98765 43210" to "+91 98765 " before this handler sees it; the
+  // country code / leading 0 is removed here first instead.
+  $$('[data-digits-only]').forEach(function (input) {
+    var max = parseInt(input.getAttribute('data-max-digits'), 10) || 0;
+
+    function clean() {
+      var digits = input.value.replace(/\D/g, '');
+      if (max === 10 && digits.length > 10) digits = digits.replace(/^(91|0)/, '');
+      if (max) digits = digits.slice(0, max);
+      if (digits !== input.value) input.value = digits;
+    }
+
+    input.addEventListener('input', clean);
+    clean();
+  });
+
   $$('[data-otp-form]').forEach(function (form) {
     var boxes = $$('[data-otp-box]', form);
     var value = $('[data-otp-value]', form);
@@ -2347,163 +2721,219 @@ import '../css/app.css';
 
 
   /* ------------------------------------------------------------------------
-     GLOBAL IMAGE LIGHTBOX — tap / click any product image to zoom fullscreen.
+     GLOBAL IMAGE LIGHTBOX — tap / click a product image to view it full
+     screen, then swipe (or scroll, arrow keys, arrows, dots) through every
+     other image of the same product without closing it.
      Works on:
-       • Product card images in the grid (card-scroller images)
-       • PDP gallery slider images (.pdp-slide img, .pdp-main img)
-       • Any img tagged [data-lightbox]
-     Closes on: backdrop click, Escape key, or a quick swipe-down.
+       • PDP gallery slider images (.pdp-slide img) — opens on the tapped one,
+         with the whole gallery in the strip
+       • Any other img tagged [data-lightbox] (shown on its own)
+     The PDP expand icon opens it too, via window.esteleLightbox.
+     Closes on: ×, a tap beside the image, Escape, or a swipe down.
      --------------------------------------------------------------------- */
   (function () {
-    /* Build the overlay once and reuse it. */
     var overlay = document.createElement('div');
-    overlay.id  = 'img-lightbox';
+    overlay.className = 'lb';
+    overlay.id = 'img-lightbox';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', 'Image zoom');
-    overlay.style.cssText = [
-      'position:fixed;inset:0;z-index:9999;',
-      'background:rgba(0,0,0,0.92);',
-      'display:flex;align-items:center;justify-content:center;',
-      'opacity:0;transition:opacity .22s ease;',
-      'cursor:zoom-out;',
-      'touch-action:none;',        /* prevent body scroll while open */
-      '-webkit-overflow-scrolling:touch;'
-    ].join('');
-
-    var lbImg = document.createElement('img');
-    lbImg.style.cssText = [
-      'max-width:96vw;max-height:92vh;',
-      'object-fit:contain;border-radius:4px;',
-      'transform:scale(0.88);transition:transform .28s cubic-bezier(.16,1,.3,1);',
-      'pointer-events:none;',       /* clicks pass through to the overlay */
-      'user-select:none;-webkit-user-select:none;'
-    ].join('');
-
-    /* Close × button */
-    var closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '&times;';
-    closeBtn.setAttribute('aria-label', 'Close image');
-    closeBtn.style.cssText = [
-      'position:absolute;top:14px;right:18px;',
-      'background:none;border:none;',
-      'color:#fff;font-size:36px;line-height:1;cursor:pointer;',
-      'opacity:.7;transition:opacity .15s;'
-    ].join('');
-    closeBtn.addEventListener('mouseenter', function () { closeBtn.style.opacity = '1'; });
-    closeBtn.addEventListener('mouseleave', function () { closeBtn.style.opacity = '.7'; });
-
-    overlay.appendChild(lbImg);
-    overlay.appendChild(closeBtn);
+    overlay.setAttribute('aria-label', 'Product images');
+    overlay.hidden = true;
+    overlay.innerHTML =
+      '<div class="lb__track" data-lb-track></div>' +
+      '<p class="lb__count" data-lb-count aria-live="polite"></p>' +
+      '<button class="lb__close" type="button" data-lb-close aria-label="Close">&times;</button>' +
+      '<button class="lb__nav lb__nav--prev" type="button" data-lb-prev aria-label="Previous image">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>' +
+      '</button>' +
+      '<button class="lb__nav lb__nav--next" type="button" data-lb-next aria-label="Next image">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' +
+      '</button>' +
+      '<div class="lb__dots" data-lb-dots></div>';
     document.body.appendChild(overlay);
 
-    function openLightbox(src, alt) {
-      lbImg.src = src;
-      lbImg.alt = alt || '';
-      overlay.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      /* Trigger transitions on next frame */
-      requestAnimationFrame(function () {
-        overlay.style.opacity = '1';
-        lbImg.style.transform = 'scale(1)';
-      });
-    }
+    var track = $('[data-lb-track]', overlay);
+    var count = $('[data-lb-count]', overlay);
+    var dotsWrap = $('[data-lb-dots]', overlay);
+    var closeBtn = $('[data-lb-close]', overlay);
+    var prevBtn = $('[data-lb-prev]', overlay);
+    var nextBtn = $('[data-lb-next]', overlay);
 
-    function closeLightbox() {
-      overlay.style.opacity = '0';
-      lbImg.style.transform = 'scale(0.88)';
-      setTimeout(function () {
-        overlay.style.display = 'none';
-        document.body.style.overflow = '';
-        lbImg.src = '';
-      }, 240);
-    }
+    var total = 0;
+    var current = 0;
+    var onClose = null;
+    var closeTimer = null;
 
     /* Best quality URL: prefer the largest srcset entry, else src. */
     function bestSrc(img) {
       var srcset = img.getAttribute('srcset') || '';
       if (srcset) {
-        /* Pick the entry with the highest stated width descriptor. */
         var best = srcset.split(',').reduce(function (acc, part) {
-          part = part.trim();
-          var m = part.match(/^(\S+)\s+(\d+)w$/);
-          if (m && parseInt(m[2], 10) > acc.w) {
-            return { url: m[1], w: parseInt(m[2], 10) };
-          }
+          var m = part.trim().match(/^(\S+)\s+(\d+)w$/);
+          if (m && parseInt(m[2], 10) > acc.w) return { url: m[1], w: parseInt(m[2], 10) };
           return acc;
         }, { url: '', w: 0 });
         if (best.url) return best.url;
       }
-      /* Fall back to data-slide-full (PDP uses this), then plain src. */
-      return img.getAttribute('data-slide-full') || img.src;
+      return img.getAttribute('data-slide-full') || img.currentSrc || img.src;
     }
 
-    /* Determine if a click was a scroll/swipe (don't open lightbox then). */
-    var touchStartY = 0;
-    var touchStartX = 0;
-    document.addEventListener('touchstart', function (e) {
-      touchStartY = e.touches[0].clientY;
-      touchStartX = e.touches[0].clientX;
+    function show(index) {
+      current = Math.max(0, Math.min(index, total - 1));
+      count.textContent = (current + 1) + ' / ' + total;
+      $$('.lb__dot', dotsWrap).forEach(function (dot, i) {
+        dot.classList.toggle('is-current', i === current);
+        dot.setAttribute('aria-current', i === current ? 'true' : 'false');
+      });
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === total - 1;
+    }
+
+    function go(index, smooth) {
+      index = Math.max(0, Math.min(index, total - 1));
+      track.scrollTo({ left: index * track.clientWidth, behavior: smooth === false ? 'auto' : 'smooth' });
+      show(index);
+    }
+
+    function build(images) {
+      track.innerHTML = '';
+      dotsWrap.innerHTML = '';
+      total = images.length;
+
+      images.forEach(function (img, i) {
+        var slide = document.createElement('div');
+        slide.className = 'lb__slide';
+        var pic = document.createElement('img');
+        pic.src = bestSrc(img);
+        pic.alt = img.alt || '';
+        pic.decoding = 'async';
+        pic.draggable = false;
+        slide.appendChild(pic);
+        track.appendChild(slide);
+
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'lb__dot';
+        dot.setAttribute('aria-label', 'Show image ' + (i + 1));
+        dot.addEventListener('click', function () { go(i); });
+        dotsWrap.appendChild(dot);
+      });
+
+      overlay.classList.toggle('is-single', total < 2);
+    }
+
+    function open(images, index, closeCallback) {
+      if (!images.length) return;
+      clearTimeout(closeTimer);
+      build(images);
+      onClose = closeCallback || null;
+      overlay.hidden = false;
+      lockScroll('lightbox');
+      /* Layout exists now that it's unhidden, so the strip can jump
+         straight to the tapped image with no visible scroll. */
+      go(index, false);
+      requestAnimationFrame(function () { overlay.classList.add('is-open'); });
+      closeBtn.focus({ preventScroll: true });
+    }
+
+    function close() {
+      if (overlay.hidden) return;
+      overlay.classList.remove('is-open');
+      unlockScroll('lightbox');
+      if (onClose) onClose(current);
+      onClose = null;
+      closeTimer = setTimeout(function () {
+        overlay.hidden = true;
+        track.innerHTML = '';
+      }, 220);
+    }
+
+    /* The group an image belongs to: every image of the PDP slider it sits
+       in, or just itself. Closing on a PDP image leaves the page slider on
+       the image the shopper swiped to. */
+    function openFrom(img) {
+      var slider = img.closest('.pdp-slider');
+      if (!slider) {
+        open([img], 0);
+        return;
+      }
+      var images = $$('.pdp-slide img', slider);
+      open(images, Math.max(0, images.indexOf(img)), function (index) {
+        slider.scrollTo({ left: slider.clientWidth * index, behavior: 'auto' });
+      });
+    }
+
+    window.esteleLightbox = { openFrom: openFrom };
+
+    var scrollFrame = null;
+    track.addEventListener('scroll', function () {
+      if (scrollFrame) return;
+      scrollFrame = requestAnimationFrame(function () {
+        scrollFrame = null;
+        if (!track.clientWidth) return;
+        var index = Math.round(track.scrollLeft / track.clientWidth);
+        if (index !== current) show(index);
+      });
     }, { passive: true });
 
-    /* The selector targets:
-         1. Images inside the card scroller
-         2. Images inside the PDP gallery
-         3. Any image tagged [data-lightbox]
-       We exclude navigation / logo / badge images by requiring the image
-       to sit inside a known product image container. */
-    var IMG_SELECTOR = [
-      '.pdp-slide img',
-      '.pdp-main img',
-      '[data-lightbox]'
-    ].join(',');
+    prevBtn.addEventListener('click', function () { go(current - 1); });
+    nextBtn.addEventListener('click', function () { go(current + 1); });
+    closeBtn.addEventListener('click', close);
+
+    /* A tap on the dark area beside the picture closes; a tap on the
+       picture itself doesn't. */
+    track.addEventListener('click', function (e) {
+      if (e.target.tagName !== 'IMG') close();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (overlay.hidden) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowRight') go(current + 1);
+      else if (e.key === 'ArrowLeft') go(current - 1);
+    });
+
+    /* Swipe down closes; sideways swipes are the strip's own scrolling. */
+    var startX = 0;
+    var startY = 0;
+    overlay.addEventListener('touchstart', function (e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    overlay.addEventListener('touchend', function (e) {
+      var dx = e.changedTouches[0].clientX - startX;
+      var dy = e.changedTouches[0].clientY - startY;
+      if (dy > 80 && Math.abs(dx) < dy / 2) close();
+    }, { passive: true });
+
+    /* Keep the current image in place when the phone rotates. */
+    window.addEventListener('resize', function () {
+      if (!overlay.hidden) go(current, false);
+    });
+
+    /* A tap that was really the end of a swipe on the page slider mustn't
+       open the viewer. Only a recent touch counts, so a mouse click (no
+       touch at all) always opens it. */
+    var touchX = 0;
+    var touchY = 0;
+    var touchAt = 0;
+    document.addEventListener('touchstart', function (e) {
+      touchX = e.touches[0].clientX;
+      touchY = e.touches[0].clientY;
+      touchAt = Date.now();
+    }, { passive: true });
 
     document.addEventListener('click', function (e) {
-      /* Is the click target (or a parent up to 3 levels) a product image? */
-      var img = null;
-      var node = e.target;
-      for (var i = 0; i < 4; i++) {
-        if (!node || node === document.body) break;
-        if (node.matches && node.matches(IMG_SELECTOR)) { img = node; break; }
-        node = node.parentElement;
-      }
-      if (!img) return;
+      var img = e.target.closest && e.target.closest('.pdp-slide img, [data-lightbox]');
+      if (!img || img.tagName !== 'IMG' || overlay.contains(img)) return;
 
-      /* Don't open if it was a touch-swipe (moved > 12px). */
-      if (e.type === 'click') {
-        var dx = (e.clientX || 0) - touchStartX;
-        var dy = (e.clientY || 0) - touchStartY;
-        if (Math.abs(dx) > 12 || Math.abs(dy) > 12) return;
-      }
+      if (Date.now() - touchAt < 1000 &&
+          (Math.abs(e.clientX - touchX) > 12 || Math.abs(e.clientY - touchY) > 12)) return;
 
       e.preventDefault();
       e.stopPropagation();
-      openLightbox(bestSrc(img), img.alt);
+      openFrom(img);
     });
-
-    /* Close on overlay/button click */
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay || e.target === closeBtn) closeLightbox();
-    });
-
-    /* Close on Escape */
-    document.addEventListener('keydown', function (e) {
-      if ((e.key === 'Escape' || e.keyCode === 27) && overlay.style.display !== 'none') {
-        closeLightbox();
-      }
-    });
-
-    /* Close on swipe-down inside the lightbox */
-    var lbTouchY = 0;
-    overlay.addEventListener('touchstart', function (e) {
-      lbTouchY = e.touches[0].clientY;
-    }, { passive: true });
-    overlay.addEventListener('touchend', function (e) {
-      if (e.changedTouches[0].clientY - lbTouchY > 60) closeLightbox();
-    }, { passive: true });
-
-    /* Initially hidden */
-    overlay.style.display = 'none';
   })();
 
 })();

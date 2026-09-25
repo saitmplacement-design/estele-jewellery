@@ -12,6 +12,7 @@ use App\Services\Payment\PaymentManager;
 use App\Services\Shipping\ShippingManager;
 use App\Services\Shipping\UnserviceableAddressException;
 use App\Services\WalletService;
+use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -118,12 +119,16 @@ class CheckoutController extends Controller
         // order against another shopper's saved address by guessing an id.
         $usingSavedAddress = $request->filled('address_id');
 
+        if ($request->filled('customer_phone')) {
+            $request->merge(['customer_phone' => Phone::normalise((string) $request->input('customer_phone'))]);
+        }
+
         $validated = $request->validate([
             'address_id' => ['nullable', 'integer'],
             'customer_first_name' => [Rule::requiredIf(! $usingSavedAddress), 'string', 'max:255'],
             'customer_last_name' => [Rule::requiredIf(! $usingSavedAddress), 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
-            'customer_phone' => [Rule::requiredIf(! $usingSavedAddress), 'string', 'max:20'],
+            'customer_phone' => [Rule::requiredIf(! $usingSavedAddress), 'digits:10'],
             'shipping_address_line1' => [Rule::requiredIf(! $usingSavedAddress), 'string', 'max:255'],
             'shipping_address_line2' => ['nullable', 'string', 'max:255'],
             'shipping_city' => [Rule::requiredIf(! $usingSavedAddress), 'string', 'max:120'],
@@ -132,7 +137,9 @@ class CheckoutController extends Controller
             'order_note' => ['nullable', 'string', 'max:1000'],
             'payment_method' => ['required', 'in:cod,razorpay'],
             'wallet_amount' => ['nullable', 'numeric', 'min:0'],
-        ], [], [
+        ], [
+            'customer_phone.digits' => 'Enter a valid 10-digit mobile number.',
+        ], [
             'customer_first_name' => 'first name',
             'customer_last_name' => 'last name',
             'customer_email' => 'email',

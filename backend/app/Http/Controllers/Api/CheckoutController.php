@@ -15,6 +15,7 @@ use App\Services\Payment\PaymentManager;
 use App\Services\Shipping\ShippingManager;
 use App\Services\Shipping\UnserviceableAddressException;
 use App\Services\WalletService;
+use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -79,11 +80,15 @@ class CheckoutController
      */
     public function store(Request $request): JsonResponse
     {
+        if ($request->filled('customer_phone')) {
+            $request->merge(['customer_phone' => Phone::normalise((string) $request->input('customer_phone'))]);
+        }
+
         $validated = $request->validate([
             'customer_first_name' => ['required', 'string', 'max:255'],
             'customer_last_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
-            'customer_phone' => ['required', 'string', 'max:20'],
+            'customer_phone' => ['required', 'digits:10'],
             'shipping_address_line1' => ['required', 'string', 'max:255'],
             'shipping_address_line2' => ['nullable', 'string', 'max:255'],
             'shipping_city' => ['required', 'string', 'max:120'],
@@ -92,7 +97,9 @@ class CheckoutController
             'order_note' => ['nullable', 'string', 'max:1000'],
             'payment_method' => ['required', 'in:cod,razorpay'],
             'wallet_amount_used' => ['nullable', 'numeric', 'min:0', 'max:999999'],
-        ], [], [
+        ], [
+            'customer_phone.digits' => 'Enter a valid 10-digit mobile number.',
+        ], [
             'customer_first_name' => 'first name',
             'customer_last_name' => 'last name',
             'customer_email' => 'email',
