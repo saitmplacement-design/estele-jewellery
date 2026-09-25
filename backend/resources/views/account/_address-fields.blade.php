@@ -7,7 +7,7 @@
   </div>
   <div>
     <label class="mb-1.5 block text-[13px] font-medium text-heading">Phone (optional)</label>
-    <input class="w-full border border-line-strong bg-white px-4 py-2.5 text-[14px] outline-none transition-colors focus:border-heading" name="phone" type="tel" value="{{ old('phone', $address?->phone) }}" inputmode="numeric">
+    <input class="w-full border border-line-strong bg-white px-4 py-2.5 text-[14px] outline-none transition-colors focus:border-heading" name="phone" type="tel" value="{{ old('phone', $address?->phone) }}" inputmode="numeric" pattern="[0-9]{10}" title="Enter a 10-digit mobile number" autocomplete="tel-national" placeholder="10-digit mobile number" data-digits-only data-max-digits="10">
   </div>
   <div class="sm:col-span-2">
     <label class="mb-1.5 block text-[13px] font-medium text-heading">Address Line 1</label>

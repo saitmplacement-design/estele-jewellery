@@ -402,37 +402,6 @@
   }
   .floating-hidden { display: none !important; }
 
-
-  .chat-full-panel {
-    position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%) translateX(110%);
-    z-index: 125;
-    width: min(340px, calc(100vw - 16px));
-    max-height: min(520px, calc(100vh - 100px));
-    border-radius: 18px 0 0 18px;
-    background: #fff;
-    box-shadow: -6px 0 40px rgba(0,0,0,.2);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: transform .3s cubic-bezier(.4,0,.2,1);
-  }
-  .chat-full-panel.is-open {
-    transform: translateY(-50%) translateX(0);
-  }
-  /* Phones: the panel slides up from the bottom. */
-  @media (max-width: 767px) {
-    .chat-full-panel {
-      top: auto; bottom: 0;
-      transform: translateX(0) translateY(110%);
-      border-radius: 18px 18px 0 0;
-      width: 100%; max-height: 70vh;
-      right: 0;
-    }
-    .chat-full-panel.is-open { transform: translateX(0) translateY(0); }
-  }
 </style>
 
 {{-- Chat bubble --}}
@@ -443,37 +412,48 @@
   <span class="tab-label">Chat</span>
 </button>
 
-{{-- Expandable chat panel --}}
-<div class="chat-full-panel" id="chat-full-panel" role="dialog" aria-label="Chat with us" aria-modal="true" hidden>
-  <div class="flex items-center justify-between gap-3 bg-[#232323] px-4 py-3.5 text-white">
-    <div class="flex items-center gap-3">
-      <img src="{{ asset('assets/images/chat-avatar.svg') }}" alt="" width="36" height="36" class="rounded-full object-cover shrink-0">
-      <div>
-        <strong class="block text-sm font-semibold">{{ $siteSettings['site_name'] ?? 'Estele' }} Style Expert</strong>
-        <div class="mt-0.5 flex items-center gap-2 text-[12px] text-[#cbd5e1]">
-          <span class="h-2 w-2 rounded-full bg-[#22c55e]"></span>
-          <span>Online</span>
-        </div>
+{{-- Chat window. Front-end only: app.js (SUPPORT CHAT) writes every message
+     into [data-chat-log] with its time, and keeps the conversation for the
+     browser tab in sessionStorage so it survives moving between pages. The
+     contact details are the same ones the footer shows. --}}
+{{-- One-line php directives on purpose, like $focusedPage above: a block-form
+     php directive further down this file gets paired with that inline one. --}}
+@php($chatSite = $siteSettings['site_name'] ?? 'Estele')
+@php($chatPhone = $siteSettings['contact_phone'] ?? '+91 82474 76318')
+<div class="chatw" id="chat-full-panel" role="dialog" aria-labelledby="chatw-title" hidden
+     data-agent="{{ $chatSite }} Assistant"
+     data-site="{{ $chatSite }}"
+     data-avatar="{{ asset('assets/images/chat-avatar.svg') }}"
+     data-phone="{{ $chatPhone }}"
+     data-phone-href="tel:{{ preg_replace('/\s+/', '', $chatPhone) }}"
+     data-email="{{ $siteSettings['contact_email'] ?? 'info@estele.co' }}"
+     data-hours="{{ $siteSettings['contact_hours'] ?? 'Mon–Sat, 10am–7pm IST' }}"
+     data-orders-url="{{ route('account.index') }}#order-history">
+  <header class="chatw__head">
+    <div class="chatw__menu-wrap">
+      <button class="chatw__icon-btn" type="button" data-chat-menu-btn aria-label="Chat options" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="12" cy="19" r="2.1"/></svg>
+      </button>
+      <div class="chatw__menu" data-chat-menu role="menu" hidden>
+        <button type="button" role="menuitem" data-chat-restart>Start a new chat</button>
+        <button type="button" role="menuitem" data-chat-end>End chat</button>
       </div>
     </div>
-    <button class="text-2xl leading-none text-white opacity-70 transition hover:opacity-100" type="button"
-            id="chat-close-btn" aria-label="Close chat">&times;</button>
+    <h2 class="chatw__title" id="chatw-title">{{ $chatSite }} Assistant</h2>
+    <button class="chatw__icon-btn" type="button" id="chat-close-btn" aria-label="Minimise chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>
+    </button>
+  </header>
+
+  <div class="chatw__body" data-chat-scroll>
+    <div class="chatw__log" data-chat-log role="log" aria-live="polite"></div>
   </div>
-  <div class="flex-1 overflow-y-auto">
-    <div class="flex flex-col gap-3 bg-[#f7f5f6] p-4" data-chat-log>
-      <p class="max-w-[85%] self-start rounded-[28px] border border-line bg-white px-4 py-3 text-[13px] leading-relaxed shadow-sm">Hey! <strong>How can I help you?</strong></p>
-    </div>
-    <div class="flex flex-col gap-2.5 bg-[#f7f5f6] px-4 pb-4 pt-2">
-      <button class="rounded-full border border-[#dadada] bg-white px-4 py-3 text-[13px] text-heading transition hover:bg-[#fafafa]" type="button" data-chat-quick>Suggest something for me</button>
-      <button class="rounded-full border border-[#dadada] bg-white px-4 py-3 text-[13px] text-heading transition hover:bg-[#fafafa]" type="button" data-chat-quick>Tell me about best seller</button>
-    </div>
-  </div>
-  <form class="flex items-center gap-2 border-t border-line bg-white px-4 py-3" data-chat-form>
+
+  <form class="chatw__form" data-chat-form>
     <label class="sr-only-custom" for="chat-input">Message</label>
-    <input class="w-full rounded-full border border-line-strong bg-[#f4f2f3] px-4 py-2.5 text-[13px] outline-none focus:border-accent"
-           id="chat-input" type="text" placeholder="Talk to me in any language" autocomplete="off">
-    <button class="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full bg-[#1f1f1f] text-white transition hover:bg-[#111111]" type="submit" aria-label="Send">
-      <svg class="h-[16px] w-[16px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+    <input class="chatw__input" id="chat-input" type="text" placeholder="Type your message..." autocomplete="off" maxlength="500" enterkeyhint="send">
+    <button class="chatw__send" type="submit" aria-label="Send message" disabled>
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21.9 12 3.4 3.6l-.01 6.53L16.6 12 3.39 13.87z"/></svg>
     </button>
   </form>
 </div>

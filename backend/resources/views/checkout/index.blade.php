@@ -35,7 +35,7 @@
           <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_email" name="customer_email" type="email" placeholder="you@example.com" value="{{ old('customer_email', auth()->user()?->email) }}" autocomplete="email" required>
           @error('customer_email') <p class="mb-3.5 -mt-2 text-[12px] text-salebadge">{{ $message }}</p> @enderror
           <label class="mb-1.5 block text-[13px] font-medium text-heading" for="customer_phone">Phone</label>
-          <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_phone" name="customer_phone" type="tel" placeholder="+91" value="{{ old('customer_phone', auth()->user()?->phone) }}" inputmode="tel" autocomplete="tel" required>
+          <input class="w-full border border-line-strong bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-muted focus:border-heading mb-3.5" id="customer_phone" name="customer_phone" type="tel" placeholder="10-digit mobile number" value="{{ old('customer_phone', auth()->user()?->phone) }}" inputmode="numeric" pattern="[0-9]{10}" title="Enter a 10-digit mobile number" autocomplete="tel-national" required data-digits-only data-max-digits="10">
           @error('customer_phone') <p class="mb-3.5 -mt-2 text-[12px] text-salebadge">{{ $message }}</p> @enderror
         </fieldset>
 

@@ -99,7 +99,7 @@
   compiled in this exact file.
 
   Same reasoning covers everything else new below (.pdp-image-wrap /
-  .pdp-zoom-* / .pdp-lightbox* / .pdp-title-row / .pdp-icon-*): plain scoped
+  .pdp-zoom-* / .pdp-title-row / .pdp-icon-*): plain scoped
   CSS/JS, not new Tailwind classes. These reproduce three things confirmed
   missing here vs. the real Estele PDP (checked live via browser) — a
   hover-to-zoom lens with a magnified side panel, an expand icon that opens
@@ -243,36 +243,6 @@
       }
     }
 
-    .pdp-lightbox {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, .85);
-      padding: 24px;
-    }
-
-    .pdp-lightbox img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-
-    .pdp-lightbox-close {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      z-index: 1;
-      background: none;
-      border: 0;
-      color: var(--color-white);
-      font-size: 32px;
-      line-height: 1;
-      cursor: pointer;
-    }
-
     .pdp-title-row {
       display: flex;
       align-items: flex-start;
@@ -339,7 +309,7 @@
         {{--
         Swipeable slider instead of a thumbnail strip: each gallery image is a
         full-width scroll-snap slide with dots underneath, and tapping the
-        current slide opens it full-screen (the lightbox below). This replaces
+        current slide opens the swipeable full-screen viewer (app.js). This replaces
         the old vertical thumbnail rail per the client's reference.
         --}}
         <div class="pdp-gallery">
@@ -585,13 +555,6 @@
           </div>
         </div>
       </article>
-
-      @if($mainMedia)
-        <div class="pdp-lightbox" id="pdp-lightbox" hidden>
-          <button class="pdp-lightbox-close" type="button" data-lightbox-close aria-label="Close">&times;</button>
-          <img id="pdp-lightbox-img" src="" alt="">
-        </div>
-      @endif
 
       @if($relatedProducts->isNotEmpty())
         <section class="py-4 md:py-8 bg-warmbeige/30 border-t border-line">
@@ -1071,30 +1034,13 @@
             });
           }
 
-          // Expand icon -> full-screen lightbox of the current main image.
+          // Expand icon -> the site-wide swipeable viewer (app.js), opened on
+          // the image currently showing in the slider.
           var expandBtn = document.getElementById('pdp-expand-btn');
-          var lightbox = document.getElementById('pdp-lightbox');
-          var lightboxImg = document.getElementById('pdp-lightbox-img');
-          var lightboxClose = lightbox && lightbox.querySelector('[data-lightbox-close]');
-
-          if (expandBtn && lightbox && lightboxImg && mainImg) {
-            function openLightbox() {
-              lightboxImg.src = mainImg.currentSrc || mainImg.src;
-              lightboxImg.alt = mainImg.alt;
-              lightbox.hidden = false;
-              document.body.style.overflow = 'hidden';
-            }
-            function closeLightbox() {
-              lightbox.hidden = true;
-              document.body.style.overflow = '';
-            }
-            expandBtn.addEventListener('click', openLightbox);
-            if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
-            lightbox.addEventListener('click', function (e) {
-              if (e.target === lightbox) closeLightbox();
-            });
-            document.addEventListener('keydown', function (e) {
-              if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+          if (expandBtn) {
+            expandBtn.addEventListener('click', function () {
+              var img = currentImage();
+              if (img && window.esteleLightbox) window.esteleLightbox.openFrom(img);
             });
           }
 
