@@ -139,11 +139,11 @@ class PanelAccessService
 
     /**
      * Issue a fresh setup token and notify the vendor by email (and WhatsApp
-     * when a number is on file). Returns true only when the email was really
-     * handed to a mail server; otherwise $lastError says why and
-     * $lastSetupUrl holds the link to share manually.
+     * when a number is on file, unless $withWhatsApp is false). Returns true
+     * only when the email was really handed to a mail server; otherwise
+     * $lastError says why and $lastSetupUrl holds the link to share manually.
      */
-    public function sendSetupLink(Vendor $vendor, ?User $user = null, bool $isResend = false): bool
+    public function sendSetupLink(Vendor $vendor, ?User $user = null, bool $isResend = false, bool $withWhatsApp = true): bool
     {
         $this->lastError = null;
         $this->lastSetupUrl = null;
@@ -179,7 +179,9 @@ class PanelAccessService
             return false;
         }
 
-        $this->sendWhatsAppCopy($vendor, $notification);
+        if ($withWhatsApp) {
+            $this->sendWhatsAppCopy($vendor, $notification);
+        }
 
         // The "log"/"array" mailers accept every message without sending it,
         // so a live site left on them would report success while nothing

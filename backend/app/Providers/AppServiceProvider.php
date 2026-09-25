@@ -130,6 +130,20 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by('vendor-login:'.$email.'|'.$request->ip());
         });
 
+        // The vendor "forgot password" form is public and sends real email,
+        // so cap it per address (no inbox flooding) and per IP (no sweeping
+        // through many addresses).
+        RateLimiter::for('vendor-password-reset', function (Request $request) {
+            $email = strtolower((string) $request->input('email'));
+            $response = fn () => back()->withInput($request->only('email'))
+                ->with('error', 'Too many reset requests. Please wait a few minutes and try again.');
+
+            return [
+                Limit::perMinutes(10, 3)->by('vendor-reset-email:'.$email)->response($response),
+                Limit::perMinute(5)->by('vendor-reset-ip:'.$request->ip())->response($response),
+            ];
+        });
+
         // Laravel's policy auto-discovery matches on class name
         // ("FooPolicy" <-> "Foo"), which can't work for User: the Customers
         // admin resource needs its own permission namespace (Customer, not

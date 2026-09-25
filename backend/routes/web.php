@@ -391,6 +391,12 @@ Route::prefix('vendor')->name('vendor.')->group(function () {
         ->middleware('throttle:vendor-login')
         ->name('login.store');
 
+    Route::get('/forgot-password', [VendorAuthController::class, 'showForgotPassword'])
+        ->name('password.request');
+    Route::post('/forgot-password', [VendorAuthController::class, 'sendResetLink'])
+        ->middleware('throttle:vendor-password-reset')
+        ->name('password.email');
+
     Route::middleware(EnsureVendorAccess::class)->group(function () {
         Route::post('/logout', [VendorAuthController::class, 'logout'])->name('logout');
 
