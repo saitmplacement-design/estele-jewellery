@@ -15,9 +15,15 @@
     @endif
 
     <div class="mb-8 rounded-lg border border-line p-5 text-left">
+      @if((float) $order->wallet_amount_used > 0)
+        <div class="flex items-center justify-between gap-3 pb-3 text-[13px] text-muted">
+          <span>Order total ₹{{ number_format($order->total, 2) }} &middot; paid from wallet</span>
+          <span>&minus;₹{{ number_format($order->wallet_amount_used, 2) }}</span>
+        </div>
+      @endif
       <div class="flex items-center justify-between border-t border-line pt-3 text-[15px] first:border-t-0 first:pt-0">
         <span class="font-medium text-heading">Amount payable</span>
-        <span class="font-medium text-price">₹{{ number_format($order->total, 0) }}</span>
+        <span class="font-medium text-price">₹{{ number_format($order->amountDue(), 2) }}</span>
       </div>
     </div>
 
@@ -36,35 +42,67 @@
   @push('scripts')
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
-      document.getElementById('pay-now-btn').addEventListener('click', function () {
-        var rzp = new Razorpay({
-          key: @json($razorpayKeyId),
-          amount: @json($amountPaise),
-          currency: 'INR',
-          name: @json($siteSettings['site_name'] ?? 'Estele'),
-          order_id: @json($order->razorpay_order_id),
-          prefill: {
-            name: @json($order->customer_name),
-            email: @json($order->customer_email),
-            contact: @json($order->customer_phone),
-          },
-          handler: function (response) {
-            var form = document.getElementById('razorpay-callback-form');
-            form.querySelector('[name="razorpay_order_id"]').value = response.razorpay_order_id;
-            form.querySelector('[name="razorpay_payment_id"]').value = response.razorpay_payment_id;
-            form.querySelector('[name="razorpay_signature"]').value = response.razorpay_signature;
-            form.submit();
-          },
-        });
+      (function () {
+        var payBtn = document.getElementById('pay-now-btn');
+        var errorBox = document.getElementById('payment-error');
 
-        rzp.on('payment.failed', function (response) {
-          var errorBox = document.getElementById('payment-error');
-          errorBox.textContent = 'Payment failed: ' + (response.error && response.error.description ? response.error.description : 'please try again.');
+        function showError(message) {
+          errorBox.textContent = message;
           errorBox.classList.remove('hidden');
-        });
+        }
 
-        rzp.open();
-      });
+        function openCheckout() {
+          // checkout.js is blocked by some ad blockers and flaky networks;
+          // without it, "Pay Now" used to do nothing at all.
+          if (typeof window.Razorpay !== 'function') {
+            showError('The payment window could not be loaded. Check your internet connection (or turn off any ad blocker) and reload this page.');
+            return;
+          }
+
+          payBtn.disabled = true;
+
+          var rzp = new Razorpay({
+            key: @json($razorpayKeyId),
+            amount: @json($amountPaise),
+            currency: 'INR',
+            name: @json($siteSettings['site_name'] ?? 'Estele'),
+            description: @json('Order '.$order->order_number),
+            order_id: @json($order->razorpay_order_id),
+            prefill: {
+              name: @json($order->customer_name),
+              email: @json($order->customer_email),
+              contact: @json($order->customer_phone),
+            },
+            handler: function (response) {
+              var form = document.getElementById('razorpay-callback-form');
+              form.querySelector('[name="razorpay_order_id"]').value = response.razorpay_order_id;
+              form.querySelector('[name="razorpay_payment_id"]').value = response.razorpay_payment_id;
+              form.querySelector('[name="razorpay_signature"]').value = response.razorpay_signature;
+              payBtn.textContent = 'Confirming payment…';
+              form.submit();
+            },
+            modal: {
+              ondismiss: function () { payBtn.disabled = false; },
+            },
+          });
+
+          rzp.on('payment.failed', function (response) {
+            showError('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'please try again.') + ' You can try again with the same or another method.');
+            payBtn.disabled = false;
+          });
+
+          rzp.open();
+        }
+
+        payBtn.addEventListener('click', openCheckout);
+
+        // Straight from "Place Order", open the payment window without an
+        // extra tap. Not after a failed/rejected attempt (a flashed error),
+        // so the customer can read the message first.
+        @if(! session('error'))
+          openCheckout();
+        @endif
+      })();
     </script>
   @endpush
 

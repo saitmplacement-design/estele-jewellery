@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Services\OldJewellery\OldJewelleryWalletSpendService;
 use App\Services\Payment\PaymentManager;
 use App\Services\Shipping\ShippingManager;
 use App\Services\Shipping\UnserviceableAddressException;
@@ -193,6 +194,15 @@ $walletUsed = round(min(
     $payable,
 ), 2);
 
+// Razorpay can't take less than ₹1: a partial wallet use never leaves a
+// smaller online remainder than that.
+if ($validated['payment_method'] === 'razorpay' && $walletUsed < $payable) {
+    $walletUsed = round(min($walletUsed, max(0.0, $payable - 1.0)), 2);
+}
+
+// `total` is the full order value, wallet part included — the same as
+// the website's checkout, the invoice and the refund limit expect.
+// What's left to pay is Order::amountDue() (total minus wallet).
 $order = Order::create([
     ...$validated,
     'user_id' => $user->id,
@@ -203,7 +213,7 @@ $order = Order::create([
     'discount_amount' => $discountAmount,
     'shipping_fee' => $shippingFee,
     'wallet_amount_used' => $walletUsed,
-    'total' => round($payable - $walletUsed, 2),
+    'total' => round($payable, 2),
     'payment_status' => 'pending',
     'status' => 'placed',
 ]);
@@ -234,10 +244,11 @@ $order = Order::create([
                 $cart->update(['coupon_id' => null]);
 
                 // Debit happens inside the same outer transaction, against the
-                // row-locked user (savepoint under MySQL) — order total was
-                // already reduced by the clamped wallet use above.
+                // row-locked user (savepoint under MySQL). Same spend service
+                // as the website, so expiring old-jewellery credits are used
+                // up first rather than left to expire.
                 if ($walletUsed > 0.0) {
-                    $this->wallet->debit($lockedUser, $walletUsed, 'order_payment', $order);
+                    app(OldJewelleryWalletSpendService::class)->applySpend($lockedUser, $walletUsed, $order);
                 }
 
                 return $order;
@@ -247,7 +258,7 @@ $order = Order::create([
         }
 
         $razorpayOrderId = null;
-        if ($order->payment_method === 'razorpay' && $order->payment_status === 'pending' && (float) $order->total > 0) {
+        if ($order->payment_method === 'razorpay' && $order->payment_status === 'pending' && $order->amountDue() > 0) {
             try {
                 $razorpayOrder = $this->payments->createOrder($order);
                 $order->update(['razorpay_order_id' => $razorpayOrder['id']]);
@@ -259,7 +270,7 @@ $order = Order::create([
 
         // Wallet fully covered the order — nothing left to charge, mark it paid
         // (an earlier version tried to create a zero-amount Razorpay order).
-        if ($order->payment_status === 'pending' && round((float) $order->total, 2) <= 0.0) {
+        if ($order->payment_status === 'pending' && $order->amountDue() <= 0.0) {
             $order->update([
                 'payment_status' => 'paid',
                 'payment_reference' => 'wallet',

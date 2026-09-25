@@ -17,6 +17,15 @@ class RazorpayGateway implements PaymentGateway
 {
     private const BASE_URL = 'https://api.razorpay.com/v1';
 
+    /**
+     * RAZORPAY_BASE_URL is for local end-to-end testing against a stand-in
+     * API only; leave it unset everywhere else.
+     */
+    private function baseUrl(): string
+    {
+        return rtrim((string) (config('services.razorpay.base_url') ?: self::BASE_URL), '/');
+    }
+
     public function isConfigured(): bool
     {
         return filled(config('services.razorpay.key_id')) && filled(config('services.razorpay.key_secret'));
@@ -42,8 +51,10 @@ class RazorpayGateway implements PaymentGateway
                 return $exception instanceof ConnectionException
                     || ($exception instanceof RequestException && $exception->response->serverError());
             })
-            ->post(self::BASE_URL.'/orders', [
-                'amount' => $this->rupeesToPaise($order->total),
+            ->post($this->baseUrl().'/orders', [
+                // Only what's left after the wallet — the wallet part was
+                // already debited at checkout.
+                'amount' => $this->rupeesToPaise($order->amountDue()),
                 'currency' => 'INR',
                 'receipt' => $order->order_number,
                 'notes' => [
@@ -52,6 +63,27 @@ class RazorpayGateway implements PaymentGateway
             ])
             ->throw()
             ->json();
+    }
+
+    /**
+     * Every payment attempt made against a Razorpay order (failed ones
+     * included), each with its `id` and `status` (created / authorized /
+     * captured / refunded / failed). Throws when Razorpay can't be reached,
+     * so a caller can tell "not paid" apart from "couldn't check".
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fetchPayments(string $razorpayOrderId): array
+    {
+        if (! $this->isConfigured()) {
+            throw new \RuntimeException('Razorpay is not configured.');
+        }
+
+        return Http::withBasicAuth(config('services.razorpay.key_id'), config('services.razorpay.key_secret'))
+            ->timeout(10)
+            ->get($this->baseUrl().'/orders/'.rawurlencode($razorpayOrderId).'/payments')
+            ->throw()
+            ->json('items', []);
     }
 
     public function verifyPaymentSignature(string $razorpayOrderId, string $razorpayPaymentId, string $signature): bool

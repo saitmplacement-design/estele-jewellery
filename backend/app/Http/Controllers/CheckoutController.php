@@ -304,17 +304,15 @@ class CheckoutController extends Controller
                         (float) auth()->user()->wallet_balance,
                     );
 
-                    // Razorpay always charges $order->total in full — PaymentManager
-                    // doesn't know about wallet_amount_used. Applying a PARTIAL wallet
-                    // debit here while still routing the remainder through Razorpay
-                    // would charge the customer twice for that portion. So for razorpay
-                    // orders, only ever apply the wallet when it fully covers the total
-                    // (order is marked paid below and Razorpay is skipped entirely).
-                    // Otherwise leave the wallet untouched and let the full amount go
-                    // through the gateway as normal. COD has no such risk (settled at
-                    // delivery), so partial wallet use is always allowed there.
+                    // Partial wallet use is fine with Razorpay too: the gateway
+                    // is only ever asked for Order::amountDue() (total minus
+                    // wallet), so the wallet part is never charged twice. If
+                    // the online payment is then abandoned, the unpaid-order
+                    // cleanup cancels the order and the cancel refunds the wallet.
+                    // Razorpay can't take less than ₹1, so a partial wallet use
+                    // never leaves a smaller remainder than that.
                     if ($validated['payment_method'] === 'razorpay' && $walletAmountUsed < (float) $order->total) {
-                        $walletAmountUsed = 0.0;
+                        $walletAmountUsed = round(min($walletAmountUsed, max(0.0, (float) $order->total - 1.0)), 2);
                     }
 
                     if ($walletAmountUsed > 0) {
@@ -385,7 +383,7 @@ class CheckoutController extends Controller
     {
         abort_unless(self::mayViewOrder($request, $order), 404);
 
-        if ($order->payment_method === 'razorpay' && $order->payment_status === 'pending') {
+        if ($order->payment_method === 'razorpay' && in_array($order->payment_status, ['pending', 'failed'], true) && $order->status !== 'cancelled') {
             return redirect()->route('payment.show', $order);
         }
 

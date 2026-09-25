@@ -87,13 +87,13 @@ class VerifyCheckoutWalletUsageTest extends TestCase
     }
 
     /**
-     * The critical double-charge fix: a partial wallet amount (doesn't cover
-     * the full total) must NOT be debited when payment_method is razorpay,
-     * because PaymentManager/RazorpayGateway always charge $order->total in
-     * full — they don't know about wallet_amount_used. If the wallet were
-     * debited here too, the wallet-covered portion would be charged twice.
+     * Partial wallet use with Razorpay: the wallet is debited once, and the
+     * Razorpay order is created for only the remainder (Order::amountDue()),
+     * so the wallet-covered part is never charged twice. (Before, the wallet
+     * was silently dropped for online payment because Razorpay was asked
+     * for the full total.)
      */
-    public function test_razorpay_with_partial_wallet_amount_does_not_debit_wallet(): void
+    public function test_razorpay_with_partial_wallet_charges_only_the_remainder(): void
     {
         $user = User::factory()->create(['wallet_balance' => 100]);
         $this->enableRazorpay();
@@ -111,10 +111,14 @@ class VerifyCheckoutWalletUsageTest extends TestCase
         $this->assertNotNull($order);
         $response->assertRedirect(route('payment.show', $order));
 
-        $this->assertSame('0.00', $order->wallet_amount_used);
+        $this->assertSame('100.00', $order->wallet_amount_used);
         $this->assertSame('pending', $order->payment_status);
-        $this->assertSame('100.00', $user->fresh()->wallet_balance, 'Wallet balance must be untouched — no double charge.');
-        $this->assertDatabaseMissing('wallet_transactions', ['user_id' => $user->id]);
+        $this->assertSame('0.00', $user->fresh()->wallet_balance);
+        $this->assertSame(1, \App\Models\WalletTransaction::where('user_id', $user->id)->where('type', 'debit')->count());
+
+        $expectedPaise = (int) round(((float) $order->total - 100) * 100);
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/v1/orders') && $request['amount'] === $expectedPaise);
+        Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/v1/orders') && $request['amount'] === (int) round((float) $order->total * 100));
     }
 
     /**

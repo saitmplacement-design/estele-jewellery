@@ -3,6 +3,7 @@
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VendorTokenAuth;
 use App\Http\Middleware\VerifyFastrrRequest;
+use App\Jobs\CancelUnpaidOnlineOrdersJob;
 use App\Jobs\CloseExpiredOldJewelleryBiddingJob;
 use App\Jobs\ExpireOldJewelleryWalletCreditsJob;
 use App\Jobs\PurgeApprovedRewardMediaJob;
@@ -40,6 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new SendOldJewelleryWalletReminderJob)
             ->daily()
             ->name('old-jewellery:wallet-expiry-reminders')
+            ->withoutOverlapping();
+
+        $schedule->job(new CancelUnpaidOnlineOrdersJob)
+            ->everyFifteenMinutes()
+            ->name('orders:cancel-unpaid-online')
             ->withoutOverlapping();
 
         $schedule->job(new PurgeApprovedRewardMediaJob)

@@ -60,6 +60,8 @@ return [
         'key_id' => env('RAZORPAY_KEY_ID'),
         'key_secret' => env('RAZORPAY_KEY_SECRET'),
         'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
+        // Testing only (a local stand-in API); unset means api.razorpay.com.
+        'base_url' => env('RAZORPAY_BASE_URL'),
     ],
 
     // Same VAS Multimedia bulk-SMS gateway (vas.themultimedia.in) already

@@ -29,8 +29,19 @@
     <span class="font-medium text-heading">Total</span>
     <span class="font-medium text-price">₹{{ number_format($order->total, 0) }}</span>
   </div>
+  @if((float) $order->wallet_amount_used > 0)
+    <div class="flex items-center justify-between pt-2 text-[13px] text-[#1a7d3f]">
+      <span>Paid from wallet</span>
+      <span>&minus;₹{{ number_format($order->wallet_amount_used, 2) }}</span>
+    </div>
+    <div class="flex items-center justify-between pt-2 text-[14px]">
+      <span class="font-medium text-heading">{{ $order->payment_method === 'cod' ? 'To pay on delivery' : 'Amount paid online' }}</span>
+      <span class="font-medium text-price">₹{{ number_format($order->amountDue(), 2) }}</span>
+    </div>
+  @endif
   <p class="mt-4 text-[12px] text-muted">
     Payment method: {{ match ($order->payment_method) { 'razorpay' => 'Online Payment (Razorpay)', 'fastrr' => 'Shiprocket Checkout', default => 'Cash on Delivery' } }}
+    &middot; {{ match ($order->payment_status) { 'paid' => 'Paid', 'failed' => 'Payment failed', 'refunded' => 'Refunded', 'partially_refunded' => 'Partly refunded', default => $order->payment_method === 'cod' ? 'Pay on delivery' : 'Payment pending' } }}
     @if($order->payment_method === 'razorpay' && $order->payment_reference)
       &middot; Ref: {{ $order->payment_reference }}
     @endif

@@ -41,8 +41,15 @@ class WalletService
         // make_email_nullable_on_users_table) — Mail::to(null) throws, and the
         // credit above has already committed, so the caller would see a 500 on
         // a wallet that was in fact credited and be tempted to credit it twice.
+        // The live server has no queue worker (QUEUE_CONNECTION=sync), so
+        // queue() sends right here; a mail-server failure must not turn a
+        // committed credit (an order cancel, a refund) into an error either.
         if (filled($user->email)) {
-            Mail::to($user->email)->queue(new WalletCredited($transaction->fresh(['user'])));
+            try {
+                Mail::to($user->email)->queue(new WalletCredited($transaction->fresh(['user'])));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $transaction;

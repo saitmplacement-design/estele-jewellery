@@ -147,6 +147,17 @@ class Order extends Model
                 ]);
             }
 
+            // Accepting is what sends the "packed and heading to shipping"
+            // email/WhatsApp, so an online order must be paid first — an
+            // abandoned Razorpay checkout would otherwise be packed and
+            // shipped for free. (An admin who confirmed the payment another
+            // way can set payment_status to paid in the same save.)
+            if ($to === 'accepted' && $order->payment_method === 'razorpay' && $order->payment_status !== 'paid') {
+                throw ValidationException::withMessages([
+                    'status' => 'This online order has not been paid yet, so it cannot be accepted.',
+                ]);
+            }
+
             if (in_array($to, self::RESTOCKING_STATUSES, true)) {
                 $order->restock();
             }
@@ -164,7 +175,13 @@ class Order extends Model
         // transition guard above rejects the move.
         static::updated(function (Order $order) {
             if ($order->wasChanged('status') && $order->status === 'accepted' && filled($order->customer_email)) {
-                \Illuminate\Support\Facades\Mail::to($order->customer_email)->queue(new \App\Mail\OrderPacked($order));
+                // Sent inline on the live server (no queue worker); a mail
+                // outage must not error the admin's already-saved change.
+                try {
+                    \Illuminate\Support\Facades\Mail::to($order->customer_email)->queue(new \App\Mail\OrderPacked($order));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
 
             if ($order->wasChanged('status') && $order->status === 'accepted' && filled($order->customer_phone)) {
@@ -272,7 +289,17 @@ class Order extends Model
      */
     public function maxRefundableAmount(): float
     {
-        return max(0.0, (float) $this->total - (float) $this->wallet_amount_used);
+        return $this->amountDue();
+    }
+
+    /**
+     * What the customer still pays after the wallet: charged through
+     * Razorpay for online orders, collected by the courier for COD. `total`
+     * always includes the wallet-paid part (web and app checkout alike).
+     */
+    public function amountDue(): float
+    {
+        return round(max(0.0, (float) $this->total - (float) $this->wallet_amount_used), 2);
     }
 
     public function applyRefund(float $amount, string $reason): void

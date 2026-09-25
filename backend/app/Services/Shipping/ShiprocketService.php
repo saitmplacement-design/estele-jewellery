@@ -110,7 +110,15 @@ class ShiprocketService implements ShippingRateCalculator
                     'selling_price' => $item->price,
                 ])->all(),
                 'payment_method' => $order->payment_method === 'cod' ? 'COD' : 'Prepaid',
-                'sub_total' => $order->subtotal,
+                // Shiprocket works out what the courier collects on a COD
+                // order as sub_total + shipping_charges - total_discount.
+                // Sending only the item subtotal made it ignore the coupon,
+                // the shipping fee and any wallet part already paid, so the
+                // courier asked for the wrong amount. Wallet counts as a
+                // discount here: it's money the customer has already paid.
+                'sub_total' => (float) $order->subtotal,
+                'shipping_charges' => (float) $order->shipping_fee,
+                'total_discount' => round((float) $order->discount_amount + (float) $order->wallet_amount_used, 2),
                 'length' => 10,
                 'breadth' => 10,
                 'height' => 5,

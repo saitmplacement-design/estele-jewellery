@@ -32,6 +32,18 @@
       </a>
     </div>
 
+    {{-- An online order whose payment never finished (window closed,
+         payment failed): the only way back to paying for it. --}}
+    @if($order->payment_method === 'razorpay' && in_array($order->payment_status, ['pending', 'failed'], true) && $order->status === 'placed')
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-salebadge/40 bg-salebadge/10 p-4">
+        <p class="text-[13px] text-heading">
+          {{ $order->payment_status === 'failed' ? 'Your payment for this order failed.' : 'This order is waiting for payment.' }}
+          Unpaid online orders are cancelled after {{ \App\Jobs\CancelUnpaidOnlineOrdersJob::PAYMENT_WINDOW_MINUTES / 60 }} hours.
+        </p>
+        <a class="btn-cta h-[42px] w-auto px-6 text-[13px]" href="{{ route('payment.show', $order) }}">Complete Payment</a>
+      </div>
+    @endif
+
     {{-- Status timeline --}}
     <div class="mb-8 rounded-lg border border-line p-5">
       @if($isTerminalOffPipeline)

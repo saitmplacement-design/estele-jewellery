@@ -43,7 +43,43 @@ class PaymentManager
 
     public function amountInPaise(Order $order): int
     {
-        return $this->razorpay->rupeesToPaise($order->total);
+        return $this->razorpay->rupeesToPaise($order->amountDue());
+    }
+
+    /**
+     * Asks Razorpay what actually happened to an online order and records a
+     * captured payment. This is the safety net for a customer whose browser
+     * closed before the success callback ran, when the payment.captured
+     * webhook never arrived either: without it the order would sit on
+     * "pending" although the money was taken.
+     *
+     * Returns 'paid' (a captured payment was found and recorded),
+     * 'authorized' (money is being taken but isn't captured yet — leave the
+     * order alone) or 'unpaid'. Throws when Razorpay can't be reached.
+     */
+    public function syncFromGateway(Order $order): string
+    {
+        if (blank($order->razorpay_order_id)) {
+            return 'unpaid';
+        }
+
+        $payments = $this->razorpay->fetchPayments($order->razorpay_order_id);
+
+        foreach ($payments as $payment) {
+            if (($payment['status'] ?? null) === 'captured') {
+                $this->markPaid($order, (string) $payment['id']);
+
+                return 'paid';
+            }
+        }
+
+        foreach ($payments as $payment) {
+            if (($payment['status'] ?? null) === 'authorized') {
+                return 'authorized';
+            }
+        }
+
+        return 'unpaid';
     }
 
     public function verifyPaymentSignature(string $razorpayOrderId, string $razorpayPaymentId, string $signature): bool

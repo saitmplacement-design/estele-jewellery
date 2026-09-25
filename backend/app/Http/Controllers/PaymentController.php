@@ -20,8 +20,22 @@ class PaymentController extends Controller
                 ->with('error', 'This order was cancelled before payment completed.');
         }
 
-        if ($order->payment_status === 'paid') {
+        if ($order->payment_status === 'paid' || $order->payment_method !== 'razorpay') {
             return redirect()->route('checkout.confirmation', $order);
+        }
+
+        // Coming back to an order whose payment already went through (the
+        // tab closed before the success callback, and no webhook arrived):
+        // record it instead of asking the customer to pay a second time. If
+        // Razorpay can't be reached, fall through to the normal page.
+        if (filled($order->razorpay_order_id)) {
+            try {
+                if ($this->payments->syncFromGateway($order) === 'paid') {
+                    return redirect()->route('checkout.confirmation', $order)->with('success', 'Your payment was received. Order placed successfully.');
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         if (blank($order->razorpay_order_id)) {

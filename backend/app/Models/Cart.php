@@ -14,6 +14,22 @@ class Cart extends Model
         'coupon_id',
     ];
 
+    /**
+     * carts.session_id is NOT NULL and unique, but the app keys a signed-in
+     * customer's cart by user_id alone (Api\CartController,
+     * Api\CheckoutController), so creating one failed outright. Such a cart
+     * gets a key of its own that no browser session id (40 random
+     * characters) can ever collide with.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Cart $cart) {
+            if (blank($cart->session_id) && $cart->user_id) {
+                $cart->session_id = 'user-'.$cart->user_id;
+            }
+        });
+    }
+
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);
