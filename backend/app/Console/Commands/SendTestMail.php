@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Vendors\PanelAccessService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 
@@ -52,7 +53,8 @@ class SendTestMail extends Command
         }
 
         if (in_array($mailer, ['log', 'array'], true)) {
-            $this->warn("MAIL_MAILER={$mailer} only records emails, it never sends them. Set MAIL_MAILER=smtp in .env.");
+            $this->warn("MAIL_MAILER={$mailer} only records emails, it never sends them.");
+            $this->warn(PanelAccessService::mailSetupHint());
 
             return self::FAILURE;
         }

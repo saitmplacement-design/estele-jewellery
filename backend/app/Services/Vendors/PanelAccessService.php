@@ -188,12 +188,29 @@ class PanelAccessService
         // ever arrives.
         $mailer = config('mail.default');
         if (in_array($mailer, ['log', 'array'], true) && ! app()->runningUnitTests()) {
-            $this->lastError = "Email is not set up on this server (MAIL_MAILER={$mailer}), so the email was only written to the log file.";
+            $this->lastError = "Email is not set up on this server (MAIL_MAILER={$mailer}), so the email was only written to the log file.\n\n".self::mailSetupHint();
 
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * How to switch real sending on. The cached-settings line matters on the
+     * live server: the deploy runs `php artisan optimize`, which freezes .env
+     * into bootstrap/cache/config.php, so an edited .env changes nothing until
+     * that cache is rebuilt.
+     */
+    public static function mailSetupHint(): string
+    {
+        $hint = 'To send real email: in the server\'s .env set MAIL_MAILER=smtp and fill in MAIL_HOST, MAIL_PORT, MAIL_SCHEME, MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM_ADDRESS, then run: php artisan optimize:clear && php artisan optimize';
+
+        if (app()->configurationIsCached()) {
+            $hint .= "\n\nThis server is using a saved copy of its settings, so changes to .env have no effect until those two commands are run.";
+        }
+
+        return $hint;
     }
 
     /**

@@ -52,6 +52,28 @@ class VendorSetupLinkDeliveryTest extends TestCase
         $this->assertNotNull($vendor->fresh()->user_id);
     }
 
+    public function test_log_mailer_is_reported_with_the_steps_to_fix_it(): void
+    {
+        $vendor = $this->makeVendor();
+        config(['mail.default' => 'log']);
+        // The log/array check is skipped under unit tests (they always use
+        // the array mailer), so step out of 'testing' for this one call.
+        $this->app['env'] = 'production';
+
+        try {
+            $service = app(PanelAccessService::class);
+            $delivered = $service->grant($vendor);
+        } finally {
+            $this->app['env'] = 'testing';
+        }
+
+        $this->assertFalse($delivered);
+        $this->assertStringContainsString('MAIL_MAILER=log', $service->lastError);
+        $this->assertStringContainsString('MAIL_MAILER=smtp', $service->lastError);
+        $this->assertStringContainsString('php artisan optimize:clear && php artisan optimize', $service->lastError);
+        $this->assertStringContainsString('/panel/set-password/', $service->failureDetails());
+    }
+
     public function test_whatsapp_failure_does_not_mark_a_delivered_email_as_failed(): void
     {
         $vendor = $this->makeVendor(['whatsapp_number' => '9000000012']);
