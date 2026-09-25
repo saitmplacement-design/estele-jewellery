@@ -68,7 +68,11 @@
                         <td style="padding:20px 32px 28px; font-family:Helvetica,Arial,sans-serif;">
                             <p style="margin:0 0 14px; font-size:13px; line-height:20px; color:#666666;">
                                 This link is valid for {{ $expiryHours }} hours. If it expires,
-                                ask your {{ $brand }} contact to send a new one.
+                                @if($isVendor)
+                                    use "Forgot password?" on the vendor sign-in page to get a new one.
+                                @else
+                                    ask your {{ $brand }} contact to send a new one.
+                                @endif
                             </p>
 
                             <p style="margin:0 0 6px; font-size:12px; line-height:18px; color:#666666;">
@@ -79,8 +83,13 @@
                             </p>
 
                             <p style="margin:0; font-size:12px; line-height:18px; color:#666666; border-top:1px solid #EAE4DE; padding-top:16px;">
-                                Didn't expect this email? You can ignore it — no account is
-                                active until a password is set.
+                                @if($isResend)
+                                    Didn't ask for this? You can ignore it — your password
+                                    stays the same unless you use the link above.
+                                @else
+                                    Didn't expect this email? You can ignore it — no account is
+                                    active until a password is set.
+                                @endif
                             </p>
                         </td>
                     </tr>

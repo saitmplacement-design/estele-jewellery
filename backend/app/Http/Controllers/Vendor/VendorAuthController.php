@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Vendors\PanelAccessService;
 use App\Support\PanelSessionParking;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -66,6 +69,47 @@ class VendorAuthController extends Controller
         }
 
         return redirect()->route('vendor.dashboard');
+    }
+
+    public function showForgotPassword(): View|RedirectResponse
+    {
+        if (Vendor::current() !== null) {
+            return redirect()->route('vendor.dashboard');
+        }
+
+        return view('vendor.portal.forgot-password');
+    }
+
+    /**
+     * Self-service "forgot password": emails the same one-time password link
+     * an admin's "Resend setup link" sends, landing on the same
+     * /panel/set-password page. Email only — this form is reachable by
+     * anyone, so it must not be able to trigger WhatsApp messages.
+     *
+     * The reply is identical whether or not the email belongs to a vendor,
+     * so the form can't be used to find out which addresses have accounts.
+     */
+    public function sendResetLink(Request $request, PanelAccessService $access): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $vendor = User::where('email', $validated['email'])->first()?->vendor;
+
+        if ($vendor?->receivesBiddingNotifications() && $vendor->is_active) {
+            if (! $access->sendSetupLink($vendor, isResend: true, withWhatsApp: false)) {
+                Log::warning('Vendor password reset email was not delivered.', [
+                    'vendor_id' => $vendor->id,
+                    'reason' => $access->lastError,
+                ]);
+            }
+        }
+
+        return redirect()->route('vendor.login')->with(
+            'status',
+            'If that email belongs to a vendor account, a password reset link is on its way. Check your inbox (and spam folder).',
+        );
     }
 
     public function logout(Request $request): RedirectResponse
